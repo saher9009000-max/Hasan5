@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinguaAI - مترجم احترافي بالذكاء الاصطناعي</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-language"></i>
+                <span>Lingua<strong>AI</strong></span>
+            </div>
+            <div class="nav-actions">
+                <!-- زر الثيمات -->
+                <div class="color-picker">
+                    <button class="theme-btn" title="تغيير الألوان"><i class="fas fa-palette"></i></button>
+                    <div class="color-options">
+                        <div class="color-circle" data-color="purple" style="background: #6366f1;"></div>
+                        <div class="color-circle" data-color="blue" style="background: #0ea5e9;"></div>
+                        <div class="color-circle" data-color="green" style="background: #10b981;"></div>
+                        <div class="color-circle" data-color="orange" style="background: #f59e0b;"></div>
+                    </div>
+                </div>
+                <!-- زر الإعدادات -->
+                <button class="theme-btn" id="settingsBtn" title="الإعدادات"><i class="fas fa-cog"></i></button>
+                <!-- زر الوضع الليلي -->
+                <button class="theme-btn" id="themeToggle" title="الوضع الليلي"><i class="fas fa-moon"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- القسم الرئيسي -->
+    <header class="hero">
+        <h1>ترجم أي لغة <span class="gradient-text">بذكاء اصطناعي</span></h1>
+        <p>مترجم فوري احترافي يدعم الترجمة النصية، الصوتية، واستيراد الملفات مجاناً.</p>
+    </header>
+
+    <!-- قسم المترجم -->
+    <section class="translator-section">
+        <div class="translator-container">
+            
+            <!-- اختيار اللغات -->
+            <div class="lang-bar">
+                <div class="lang-select">
+                    <label>من</label>
+                    <select id="sourceLang"><option value="auto">🔍 اكتشاف تلقائي</option></select>
+                </div>
+                <button class="swap-btn" id="swapBtn" title="تبديل اللغات"><i class="fas fa-exchange-alt"></i></button>
+                <div class="lang-select">
+                    <label>إلى</label>
+                    <select id="targetLang"><option value="ar">🇸🇦 العربية</option></select>
+                </div>
+            </div>
+
+            <!-- صناديق النص -->
+            <div class="boxes-container">
+                <!-- صندوق الإدخال -->
+                <div class="box">
+                    <div class="box-header">
+                        <span>النص الأصلي</span>
+                        <div class="tools">
+                            <label class="icon-btn" title="استيراد ملف TXT">
+                                <i class="fas fa-file-import"></i>
+                                <input type="file" id="fileInput" accept=".txt" hidden>
+                            </label>
+                            <button class="icon-btn" id="clearBtn" title="مسح"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <textarea id="sourceText" placeholder="اكتب هنا أو استخدم الميكروفون..."></textarea>
+                    <div class="box-footer">
+                        <button class="icon-btn voice-btn" id="voiceBtn" title="ترجمة صوتية"><i class="fas fa-microphone"></i></button>
+                        <button class="icon-btn" id="speakSource" title="استماع للنص"><i class="fas fa-volume-up"></i></button>
+                        <span class="char-count"><span id="charCount">0</span>/5000</span>
+                    </div>
+                </div>
+
+                <!-- صندوق الإخراج -->
+                <div class="box output-box">
+                    <div class="box-header">
+                        <span>الترجمة</span>
+                        <div class="tools">
+                            <button class="icon-btn" id="copyBtn" title="نسخ"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <textarea id="targetText" placeholder="ستظهر الترجمة هنا..." readonly></textarea>
+                    <div class="box-footer">
+                        <button class="icon-btn" id="speakTarget" title="استماع للترجمة"><i class="fas fa-volume-up"></i></button>
+                        <span class="status" id="status"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- خيارات الترجمة الذكية -->
+            <div class="ai-toggle-container">
+                <label class="switch">
+                    <input type="checkbox" id="aiToggle">
+                    <span class="slider round"></span>
+                </label>
+                <span class="ai-label"><i class="fas fa-brain"></i> تفعيل الترجمة بالذكاء الاصطناعي (أبطأ ولكن أدق)</span>
+            </div>
+
+            <!-- أزرار التحكم الرئيسية -->
+            <div class="main-actions">
+                <button class="main-btn" id="translateBtn">
+                    <i class="fas fa-language"></i> ترجم الآن
+                </button>
+                <button class="main-btn secondary" id="historyBtn">
+                    <i class="fas fa-history"></i> السجل
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- نافذة السجل -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> سجل الترجمات</h3>
+                <div>
+                    <button class="icon-btn" id="clearHistoryBtn" title="مسح الكل"><i class="fas fa-trash"></i></button>
+                    <button class="icon-btn close-btn"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body" id="historyList">
+                <p class="empty-msg">لا توجد ترجمات سابقة.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الإعدادات -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> الإعدادات</h3>
+                <button class="icon-btn close-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <strong>إصدار الموقع:</strong>
+                    <span>v2.1.0</span>
+                </div>
+                <div class="setting-item">
+                    <strong>نوع النسخة:</strong>
+                    <span class="badge">مجانية (Free)</span>
+                </div>
+                <div class="setting-item">
+                    <strong>وضع تجربة المستخدم (UX Mode):</strong>
+                    <label class="switch small">
+                        <input type="checkbox" id="uxModeToggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="setting-desc">عند تفعيل وضع تجربة المستخدم، ستظهر إشعارات ترحيبية وتلميحات تساعدك على استخدام الموقع.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- إشعارات -->
+    <div class="toast" id="toast">رسالة</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
