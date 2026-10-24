@@ -24,6 +24,7 @@ let state = {
     apiKey: localStorage.getItem('turjuman_key') || '',
     endpoint: localStorage.getItem('turjuman_endpoint') || '',
     isTranslating: false,
+    isRecording: false, // حالة التسجيل الصوتي
     models: []
 };
 
@@ -77,6 +78,7 @@ function init() {
 
     // ربط الأحداث
     bindEvents();
+    initVoiceRecognition(); // إضافة تهيئة الميكروفون
 }
 
 function bindEvents() {
@@ -125,6 +127,9 @@ function bindEvents() {
 
     // الترجمة
     els.btnTranslate.addEventListener('click', translate);
+    
+    // تشغيل الميكروفون
+    els.btnMic.addEventListener('click', toggleRecording);
 }
 
 // ==================== 5. الوظائف المنطقية ====================
@@ -336,10 +341,7 @@ async function translateWithAI(text, from, to) {
 
     const res = await fetch(`${ep}/chat/completions`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${state.apiKey}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.apiKey}` },
         body: JSON.stringify({
             model: state.selectedModel,
             messages: [
@@ -372,6 +374,85 @@ function showToast(msg, type = 'info') {
     t.textContent = msg;
     els.toastContainer.appendChild(t);
     setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ==================== 11. ميزة الترجمة الصوتية (الميكروفون) - إضافة جديدة ====================
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+function initVoiceRecognition() {
+    if (!SpeechRecognition) {
+        els.btnMic.style.display = 'none'; // إخفاء الزر إذا كان المتصفح لا يدعمه
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+        state.isRecording = true;
+        els.btnMic.classList.add('recording');
+        // تغيير الأيقونة إلى مربع إيقاف
+        els.btnMic.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+        els.statusBar.textContent = 'جاري التسجيل... تحدث الآن';
+        els.statusBar.className = 'status-bar';
+        els.sourceText.placeholder = 'جاري الاستماع...';
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        els.sourceText.value += (els.sourceText.value ? ' ' : '') + transcript;
+        els.charCount.textContent = els.sourceText.value.length;
+        els.statusBar.textContent = 'تم التعرف على الصوت بنجاح';
+        els.statusBar.className = 'status-bar success';
+    };
+
+    recognition.onerror = (event) => {
+        console.error(event.error);
+        if (event.error === 'not-allowed') {
+            els.statusBar.textContent = 'يرجى السماح بالوصول للميكروفون من إعدادات المتصفح';
+        } else {
+            els.statusBar.textContent = 'حدث خطأ في الميكروفون';
+        }
+        els.statusBar.className = 'status-bar error';
+        stopRecordingUI();
+    };
+
+    recognition.onend = () => {
+        stopRecordingUI();
+    };
+}
+
+function toggleRecording() {
+    if (!SpeechRecognition) {
+        showToast('متصفحك لا يدعم ميزة التعرف على الصوت', 'error');
+        return;
+    }
+
+    if (state.isRecording) {
+        recognition.stop();
+    } else {
+        // ضبط لغة التعرف بناءً على اللغة المختارة
+        recognition.lang = els.sourceLang.value === 'auto' ? 'ar-SA' : els.sourceLang.value;
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error(e);
+            showToast('حدث خطأ أثناء تشغيل الميكروفون', 'error');
+        }
+    }
+}
+
+function stopRecordingUI() {
+    state.isRecording = false;
+    els.btnMic.classList.remove('recording');
+    // إعادة الأيقونة الأصلية
+    els.btnMic.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+    els.sourceText.placeholder = 'اكتب أو الصق النص هنا للترجمة...';
+    if (els.statusBar.textContent === 'جاري التسجيل... تحدث الآن') {
+        els.statusBar.textContent = '';
+    }
 }
 
 // ==================== التشغيل ====================
