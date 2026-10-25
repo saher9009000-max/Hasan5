@@ -1,382 +1,368 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#14B8A6">
-<title>ترجمان — ترجمة احترافية</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Turquoise Translate — professional, standard and AI-powered translation with voice output, batch file import and a fully themeable turquoise interface." />
+  <meta name="theme-color" content="#14b8a6" />
+  <title>Turquoise Translate — Professional · Standard · AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2314b8a6'/%3E%3Ctext x='32' y='44' font-size='34' font-family='sans-serif' text-anchor='middle' fill='%23042b27'%3ET%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
+  <!-- Accessibility: allow keyboard users to jump straight into the app -->
+  <a class="skip-link" href="#main">Skip to main content</a>
 
-<!-- ═══════════════ الشريط العلوي ═══════════════ -->
-<header class="app-header">
-  <div class="brand">
-    <div class="brand-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 8h5M5 8a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h4"/>
-        <path d="M9 8v8"/>
-        <path d="M14 14l4-6 4 6"/>
-        <path d="M15 12h6"/>
-        <path d="M3 21h18"/>
-      </svg>
-    </div>
-    <div class="brand-text">
-      <div class="brand-name">ترجمان</div>
-      <div class="brand-sub">ترجمة احترافية بالذكاء الاصطناعي</div>
-    </div>
-  </div>
-  <div class="header-actions">
-    <button class="icon-btn" id="themeToggle" aria-label="تبديل السمة">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
-    <button class="icon-btn" id="settingsBtn" aria-label="الإعدادات">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    </button>
-  </div>
-</header>
-
-<!-- ═══════════════ المحتوى الرئيسي ═══════════════ -->
-<main class="app-main">
-
-  <!-- محدد المحرك -->
-  <div class="engine-selector" role="tablist">
-    <button class="engine-btn active" data-engine="normal" role="tab">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      </svg>
-      <span>ترجمة عادية</span>
-    </button>
-    <button class="engine-btn" data-engine="ai" role="tab">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2l2.4 6.4L21 9l-5 5 1 7-5-3-5 3 1-7-5-5 6.6-.6z"/>
-      </svg>
-      <span>ترجمة AI</span>
-    </button>
-  </div>
-
-  <!-- خيارات AI (مخفية افتراضياً) -->
-  <div class="ai-options hidden" id="aiOptions">
-    <button class="option-btn" id="modelBtn" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1"/>
-        <rect x="14" y="3" width="7" height="7" rx="1"/>
-        <rect x="14" y="14" width="7" height="7" rx="1"/>
-        <rect x="3" y="14" width="7" height="7" rx="1"/>
-      </svg>
-      <div class="option-content">
-        <span class="option-label">النموذج</span>
-        <span class="option-value empty" id="modelValue">لم يتم الاختيار</span>
+  <!-- ==================================================================
+       HEADER — brand + three-dot (ellipsis) menu
+       ================================================================== -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5h9M8.5 5c0 5-2 9-4.5 11" />
+          <path d="M6 11c1.6 3 4 5 7 6" />
+          <path d="M13 19l4-11 4 11M14.6 15.5h4.8" />
+        </svg>
+      </span>
+      <div class="brand-text">
+        <h1 class="brand-title">Turquoise&nbsp;Translate</h1>
+        <p class="brand-sub">Professional · Standard · AI</p>
       </div>
-    </button>
-    <button class="option-btn" id="typeBtn" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/>
-      </svg>
-      <div class="option-content">
-        <span class="option-label">نوع الترجمة</span>
-        <span class="option-value" id="typeValue">طبيعية</span>
+    </div>
+
+    <div class="header-actions">
+      <!-- Live status pill reflects the last operation -->
+      <span class="status-pill" id="statusPill" data-state="idle" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-text">Ready</span>
+      </span>
+
+      <!-- Three-dot (ellipsis) menu button -->
+      <button class="icon-btn" id="menuBtn" type="button"
+              aria-label="Open settings menu" aria-haspopup="true"
+              aria-expanded="false" aria-controls="menuDropdown">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.9" />
+          <circle cx="12" cy="12" r="1.9" />
+          <circle cx="12" cy="19" r="1.9" />
+        </svg>
+      </button>
+
+      <!-- Dropdown: additional settings -->
+      <div class="dropdown" id="menuDropdown" role="menu" aria-labelledby="menuBtn" hidden>
+        <div class="dropdown-section-label">Appearance</div>
+
+        <label class="dropdown-row switch-row" for="darkModeSwitch">
+          <span class="row-label">Dark mode</span>
+          <span class="switch">
+            <input type="checkbox" id="darkModeSwitch" role="switch" aria-label="Dark mode" />
+            <span class="track" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <button class="dropdown-item" type="button" role="menuitem" id="menuColors">
+          <span aria-hidden="true">🎨</span> Site Colors
+        </button>
+
+        <div class="dropdown-divider" role="separator"></div>
+        <div class="dropdown-section-label">Data</div>
+
+        <button class="dropdown-item" type="button" role="menuitem" id="menuHistory">
+          <span aria-hidden="true">🕘</span> Show History
+        </button>
+        <button class="dropdown-item danger" type="button" role="menuitem" id="menuClearHistory">
+          <span aria-hidden="true">🗑</span> Clear History
+        </button>
+
+        <div class="dropdown-divider" role="separator"></div>
+        <p class="dropdown-note">Settings are stored locally in your browser.</p>
       </div>
-    </button>
-  </div>
-
-  <!-- شريط اللغات -->
-  <div class="lang-row">
-    <select class="lang-select" id="sourceLang" aria-label="لغة المصدر">
-      <option value="ar" selected>العربية</option>
-      <option value="en">الإنجليزية</option>
-      <option value="fr">الفرنسية</option>
-      <option value="es">الإسبانية</option>
-      <option value="de">الألمانية</option>
-      <option value="tr">التركية</option>
-      <option value="it">الإيطالية</option>
-      <option value="pt">البرتغالية</option>
-      <option value="ru">الروسية</option>
-      <option value="ja">اليابانية</option>
-      <option value="ko">الكورية</option>
-      <option value="zh">الصينية</option>
-      <option value="hi">الهندية</option>
-      <option value="fa">الفارسية</option>
-      <option value="ur">الأردية</option>
-    </select>
-    <button class="swap-btn" id="swapBtn" aria-label="تبديل اللغات">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M7 16V4M7 4L3 8M7 4l4 4"/>
-        <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
-      </svg>
-    </button>
-    <select class="lang-select" id="targetLang" aria-label="لغة الهدف">
-      <option value="ar">العربية</option>
-      <option value="en" selected>الإنجليزية</option>
-      <option value="fr">الفرنسية</option>
-      <option value="es">الإسبانية</option>
-      <option value="de">الألمانية</option>
-      <option value="tr">التركية</option>
-      <option value="it">الإيطالية</option>
-      <option value="pt">البرتغالية</option>
-      <option value="ru">الروسية</option>
-      <option value="ja">اليابانية</option>
-      <option value="ko">الكورية</option>
-      <option value="zh">الصينية</option>
-      <option value="hi">الهندية</option>
-      <option value="fa">الفارسية</option>
-      <option value="ur">الأردية</option>
-    </select>
-  </div>
-
-  <!-- بطاقة الإدخال -->
-  <div class="input-card">
-    <textarea
-      id="sourceText"
-      class="source-textarea"
-      placeholder="اكتب أو الصق النص هنا..."
-      dir="auto"
-    ></textarea>
-    <input type="file" id="fileInput" accept=".txt,.md,.csv,.srt,.json,.log,.rtf" hidden>
-    <div class="source-tools">
-      <button class="tool-btn" id="pasteBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="8" y="2" width="8" height="4" rx="1"/>
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        </svg>
-        لصق
-      </button>
-      <button class="tool-btn" id="clearBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-        مسح
-      </button>
-      <button class="tool-btn" id="importBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        ملف
-      </button>
-      <button class="tool-btn" id="micBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
-        صوت
-      </button>
-      <span class="char-count" id="charCount">0</span>
     </div>
-  </div>
+  </header>
 
-  <!-- أزرار الإجراءات -->
-  <div class="action-row">
-    <button class="btn-primary" id="translateBtn" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 8h5M5 8a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h4"/>
-        <path d="M9 8v8"/>
-        <path d="M14 14l4-6 4 6"/>
-        <path d="M15 12h6"/>
-      </svg>
-      ترجم الآن
-    </button>
-    <button class="btn-voice" id="voiceTranslateBtn" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-        <line x1="12" y1="19" x2="12" y2="23"/>
-      </svg>
-      ترجمة صوتية
-    </button>
-  </div>
+  <!-- ==================================================================
+       MAIN
+       ================================================================== -->
+  <main class="layout" id="main">
 
-  <!-- بطاقة النتيجة -->
-  <div class="result-card">
-    <div class="result-text empty" id="resultText">الترجمة ستظهر هنا</div>
-    <div class="result-tools">
-      <button class="tool-btn" id="copyBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
-        نسخ
-      </button>
-      <button class="tool-btn" id="speakBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-        </svg>
-        نطق
-      </button>
-      <button class="tool-btn" id="shareBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18" cy="5" r="3"/>
-          <circle cx="6" cy="12" r="3"/>
-          <circle cx="18" cy="19" r="3"/>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-        </svg>
-        مشاركة
-      </button>
-      <button class="tool-btn" id="favoriteBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-        مفضلة
-      </button>
-      <button class="tool-btn" id="retranslateBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"/>
-          <polyline points="1 20 1 14 7 14"/>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-        </svg>
-        إعادة
-      </button>
-    </div>
-  </div>
-
-  <!-- تبويبات السجل والمفضلة -->
-  <div class="section-tabs">
-    <button class="section-tab active" data-section="history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-      السجل
-    </button>
-    <button class="section-tab" data-section="favorites">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      </svg>
-      المفضلة
-    </button>
-  </div>
-  <div class="section-content" id="historySection"></div>
-  <div class="section-content hidden" id="favoritesSection"></div>
-
-</main>
-
-<!-- ═══════════════ نافذة اختيار النموذج ═══════════════ -->
-<div class="modal" id="modelModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>اختيار النموذج</h2>
-      <button class="modal-close" data-close-modal="modelModal" aria-label="إغلاق">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="search-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="search" id="modelSearch" placeholder="ابحث عن نموذج...">
+    <!-- ---------- 1. API configuration ---------- -->
+    <section class="card" aria-labelledby="apiTitle">
+      <div class="card-head">
+        <h2 class="card-title" id="apiTitle">API Configuration</h2>
+        <span class="badge" id="endpointBadge">Demo mode</span>
       </div>
-      <div class="model-list" id="modelList"></div>
-      <button class="refresh-btn" id="refreshModelsBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"/>
-          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-        </svg>
-        تحديث النماذج
-      </button>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" data-close-modal="modelModal" type="button">إلغاء</button>
-      <button class="btn-primary-modal" id="confirmModelBtn" type="button" disabled>تأكيد</button>
-    </div>
-  </div>
-</div>
 
-<!-- ═══════════════ نافذة نوع الترجمة ═══════════════ -->
-<div class="modal" id="typeModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>نوع الترجمة</h2>
-      <button class="modal-close" data-close-modal="typeModal" aria-label="إغلاق">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="type-grid" id="typeGrid"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" data-close-modal="typeModal" type="button">إلغاء</button>
-      <button class="btn-primary-modal" id="confirmTypeBtn" type="button">تأكيد</button>
-    </div>
-  </div>
-</div>
+      <div class="field-grid">
+        <!-- API key -->
+        <div class="field">
+          <label for="apiKey">API key</label>
+          <div class="input-group">
+            <input type="password" id="apiKey" placeholder="sk-…"
+                   autocomplete="off" spellcheck="false"
+                   aria-describedby="apiKeyHint" />
+            <button type="button" class="input-addon" id="toggleKeyBtn"
+                    aria-label="Show API key" aria-pressed="false">👁</button>
+          </div>
+          <p class="hint" id="apiKeyHint">Stored only in this browser's localStorage.</p>
+        </div>
 
-<!-- ═══════════════ نافذة الإعدادات ═══════════════ -->
-<div class="modal" id="settingsModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>الإعدادات</h2>
-      <button class="modal-close" data-close-modal="settingsModal" aria-label="إغلاق">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label for="apiKeyInput">مفتاح API</label>
-        <div class="input-wrap">
-          <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" spellcheck="false">
-          <button class="field-icon-btn" id="toggleKeyBtn" type="button" aria-label="إظهار/إخفاء">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
+        <!-- Endpoint URL -->
+        <div class="field">
+          <label for="apiEndpoint">API endpoint URL</label>
+          <input type="url" id="apiEndpoint" placeholder="https://api.example.com/v1/translate"
+                 autocomplete="off" spellcheck="false" inputmode="url"
+                 aria-describedby="endpointHint" />
+          <p class="hint" id="endpointHint">Leave empty to explore the app in demo mode.</p>
         </div>
       </div>
-      <div class="field">
-        <label for="endpointInput">عنوان Endpoint</label>
-        <div class="input-wrap">
-          <input type="url" id="endpointInput" placeholder="https://api.openai.com/v1" autocomplete="off" spellcheck="false">
+    </section>
+
+    <!-- ---------- 2. Translator ---------- -->
+    <section class="card" aria-labelledby="transTitle">
+      <div class="card-head">
+        <h2 class="card-title" id="transTitle">Translate</h2>
+      </div>
+
+      <!-- Utility toolbar -->
+      <div class="toolbar" role="group" aria-label="Translation tools">
+        <button class="btn btn-ghost" type="button" id="importBtn">
+          <span aria-hidden="true">📁</span> Import Files
+        </button>
+        <input type="file" id="fileInput" class="visually-hidden"
+               accept=".txt,.md,.markdown,.csv,.tsv,.json,.log,.srt,.vtt,.html,.htm,.xml,.yaml,.yml,text/*"
+               multiple tabindex="-1" aria-hidden="true" />
+
+        <button class="btn btn-ghost" type="button" id="colorsBtn">
+          <span aria-hidden="true">🎨</span> Site Colors
+        </button>
+
+        <button class="btn btn-ghost danger" type="button" id="clearHistoryBtn">
+          <span aria-hidden="true">🗑</span> Clear History
+        </button>
+
+        <!-- Voice translation toggle -->
+        <label class="switch-row inline" for="voiceSwitch">
+          <span class="row-label">Voice Translation</span>
+          <span class="switch">
+            <input type="checkbox" id="voiceSwitch" role="switch" aria-label="Voice translation" />
+            <span class="track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
+
+      <!-- Language & model selection -->
+      <div class="lang-row">
+        <div class="field">
+          <label for="sourceLang">From</label>
+          <select id="sourceLang">
+            <option value="auto">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+            <option value="ar">Arabic</option>
+            <option value="zh">Chinese (Simplified)</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="hi">Hindi</option>
+            <option value="tr">Turkish</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="sv">Swedish</option>
+            <option value="da">Danish</option>
+            <option value="fi">Finnish</option>
+            <option value="no">Norwegian</option>
+            <option value="el">Greek</option>
+            <option value="he">Hebrew</option>
+            <option value="th">Thai</option>
+            <option value="vi">Vietnamese</option>
+            <option value="id">Indonesian</option>
+            <option value="ms">Malay</option>
+            <option value="uk">Ukrainian</option>
+            <option value="cs">Czech</option>
+            <option value="sk">Slovak</option>
+            <option value="hu">Hungarian</option>
+            <option value="ro">Romanian</option>
+            <option value="bg">Bulgarian</option>
+            <option value="hr">Croatian</option>
+            <option value="sr">Serbian</option>
+            <option value="sl">Slovenian</option>
+            <option value="fa">Persian</option>
+            <option value="ur">Urdu</option>
+            <option value="bn">Bengali</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="sw">Swahili</option>
+            <option value="fil">Filipino</option>
+          </select>
         </div>
-        <p class="field-hint">مثال: https://api.openai.com/v1 أو أي خدمة متوافقة مع OpenAI Chat Completions</p>
+
+        <button class="btn btn-ghost swap-btn" type="button" id="swapBtn"
+                aria-label="Swap source and target languages" title="Swap languages">
+          <span aria-hidden="true">⇄</span>
+        </button>
+
+        <div class="field">
+          <label for="targetLang">To</label>
+          <select id="targetLang">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+            <option value="ar">Arabic</option>
+            <option value="zh">Chinese (Simplified)</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="hi">Hindi</option>
+            <option value="tr">Turkish</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="sv">Swedish</option>
+            <option value="da">Danish</option>
+            <option value="fi">Finnish</option>
+            <option value="no">Norwegian</option>
+            <option value="el">Greek</option>
+            <option value="he">Hebrew</option>
+            <option value="th">Thai</option>
+            <option value="vi">Vietnamese</option>
+            <option value="id">Indonesian</option>
+            <option value="ms">Malay</option>
+            <option value="uk">Ukrainian</option>
+            <option value="cs">Czech</option>
+            <option value="sk">Slovak</option>
+            <option value="hu">Hungarian</option>
+            <option value="ro">Romanian</option>
+            <option value="bg">Bulgarian</option>
+            <option value="hr">Croatian</option>
+            <option value="sr">Serbian</option>
+            <option value="sl">Slovenian</option>
+            <option value="fa">Persian</option>
+            <option value="ur">Urdu</option>
+            <option value="bn">Bengali</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="sw">Swahili</option>
+            <option value="fil">Filipino</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="modelSelect">Translation model</label>
+          <select id="modelSelect">
+            <option value="professional">Professional — human-like</option>
+            <option value="standard">Standard</option>
+            <option value="ai">AI-powered</option>
+          </select>
+        </div>
       </div>
-      <div class="status-indicator" id="connectionStatus">
-        <span class="status-dot"></span>
-        <span class="status-text" id="statusText">لم يتم الاختبار بعد</span>
+
+      <!-- Input / output panes -->
+      <div class="panes">
+        <div class="pane">
+          <div class="pane-head">
+            <label for="inputText">Text to translate</label>
+            <span class="pane-meta" id="charCount">0 characters</span>
+          </div>
+          <textarea id="inputText" placeholder="Paste or type the text you want to translate…"
+                    spellcheck="false" aria-describedby="charCount"></textarea>
+          <div class="pane-foot">
+            <span class="pane-meta" id="fileChips" aria-live="polite"></span>
+            <button class="btn btn-ghost btn-sm" type="button" id="clearInputBtn">Clear</button>
+          </div>
+        </div>
+
+        <div class="pane">
+          <div class="pane-head">
+            <label for="outputText">Translation</label>
+            <span class="pane-meta" id="outputMeta"></span>
+          </div>
+          <textarea id="outputText" placeholder="Your translation will appear here…"
+                    readonly aria-live="polite"></textarea>
+          <div class="pane-foot">
+            <span class="pane-meta" id="outputInfo"></span>
+            <div class="pane-foot-actions">
+              <button class="btn btn-ghost btn-sm" type="button" id="speakBtn" title="Read aloud" aria-label="Read translation aloud">🔊</button>
+              <button class="btn btn-ghost btn-sm" type="button" id="copyBtn">Copy</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="settings-actions">
-        <button class="btn-secondary" id="testConnectionBtn" type="button">اختبار الاتصال</button>
-        <button class="btn-danger" id="deleteKeyBtn" type="button">حذف المفتاح</button>
-        <button class="btn-primary-modal" id="saveSettingsBtn" type="button">حفظ الإعدادات</button>
+
+      <!-- Primary action -->
+      <div class="actions">
+        <button class="btn btn-primary btn-lg" type="button" id="translateBtn">
+          <span class="btn-label">Translate</span>
+        </button>
+        <span class="spinner" id="spinner" hidden aria-hidden="true"></span>
+        <span class="feedback" id="feedback" role="status" aria-live="polite"></span>
+        <span class="kbd-hint"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span>
       </div>
-      <p class="field-hint" style="margin-top:14px;">
-        ⚠️ <strong>ملاحظة أمنية:</strong> يُحفظ المفتاح في LocalStorage ولا يوفر حماية كاملة.
-        للاستخدام الإنتاجي، مرّر الطلبات عبر خادمك الوسيط.
+    </section>
+
+    <!-- ---------- 3. History ---------- -->
+    <section class="card" id="historyCard" aria-labelledby="historyTitle" hidden>
+      <div class="card-head">
+        <h2 class="card-title" id="historyTitle">Translation history</h2>
+        <button class="btn btn-ghost btn-sm" type="button" id="historyHideBtn">Hide</button>
+      </div>
+      <ul class="history-list" id="historyList"></ul>
+      <p class="empty-state" id="historyEmpty">No translations yet. Your last 50 translations will be saved here.</p>
+    </section>
+  </main>
+
+  <!-- ==================================================================
+       SITE COLORS DIALOG
+       ================================================================== -->
+  <dialog class="dialog" id="colorDialog" aria-labelledby="colorDialogTitle">
+    <form method="dialog" class="dialog-body">
+      <header class="dialog-head">
+        <h2 id="colorDialogTitle">Site Colors</h2>
+        <button class="icon-btn" value="close" aria-label="Close color settings">✕</button>
+      </header>
+
+      <p class="dialog-text">
+        Adjust the turquoise palette. Text colours are recalculated automatically
+        so every combination keeps an accessible contrast ratio.
       </p>
-    </div>
-  </div>
-</div>
 
-<!-- ═══════════════ Toast ═══════════════ -->
-<div class="toast" id="toast"></div>
+      <div class="color-grid">
+        <label class="color-field">
+          <span>Primary</span>
+          <input type="color" id="colorPrimary" value="#14b8a6" />
+        </label>
+        <label class="color-field">
+          <span>Secondary</span>
+          <input type="color" id="colorSecondary" value="#06b6d4" />
+        </label>
+        <label class="color-field">
+          <span>Background</span>
+          <input type="color" id="colorBg" value="#f0fdfa" />
+        </label>
+      </div>
 
-<script src="app.js"></script>
+      <div class="contrast-report" id="contrastReport" aria-live="polite"></div>
+
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" type="button" id="resetColorsBtn">Reset to defaults</button>
+        <button class="btn btn-primary" value="done">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast container -->
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+  <noscript>
+    <p class="noscript">Turquoise Translate needs JavaScript enabled to run.</p>
+  </noscript>
+
+  <script src="app.js" defer></script>
 </body>
 </html>
