@@ -10,11 +10,11 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2314b8a6'/%3E%3Ctext x='32' y='44' font-size='34' font-family='sans-serif' text-anchor='middle' fill='%23042b27'%3ET%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
-  <!-- Accessibility: allow keyboard users to jump straight into the app -->
+  <!-- Accessibility: skip straight into the app for keyboard users -->
   <a class="skip-link" href="#main">Skip to main content</a>
 
   <!-- ==================================================================
-       HEADER — brand + three-dot (ellipsis) menu
+       HEADER — brand + live status + three-dot (ellipsis) menu
        ================================================================== -->
   <header class="app-header">
     <div class="brand">
@@ -210,7 +210,7 @@
           <label for="targetLang">To</label>
           <select id="targetLang">
             <option value="en">English</option>
-            <option value="es">Spanish</option>
+            <option value="es" selected>Spanish</option>
             <option value="fr">French</option>
             <option value="de">German</option>
             <option value="it">Italian</option>
