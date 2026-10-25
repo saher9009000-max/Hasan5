@@ -1,34 +1,35 @@
 /* =====================================================================
-   Turquoise Translate — app.js
+   ترجمة تركواز — app.js
    ---------------------------------------------------------------------
-   README / SETUP (short version)
+   README (نسخة مختصرة)
    ---------------------------------------------------------------------
-   1. Put index.html, styles.css and app.js in the same folder.
-   2. Open index.html directly in a browser (file:// works) or serve it
-      from any static host (GitHub Pages, Netlify, nginx, …).
-   3. Without an API endpoint the app runs in *demo mode* using a small
-      built-in dictionary — handy for previewing the UI.
-   4. To connect a real service:
-        • paste your API key   → "API key"
-        • paste the endpoint   → "API endpoint URL"
-      The app POSTs JSON:
+   1. ضع الملفات الثلاثة (index.html، styles.css، app.js) في مجلد واحد.
+   2. افتح index.html مباشرة في المتصفح أو ارفعه على أي استضافة ثابتة
+      (GitHub Pages، Netlify، nginx…).
+   3. بدون نقطة نهاية API يعمل التطبيق في «الوضع التجريبي» اعتمادًا على
+      قاموس صغير مدمج — مفيد لمعاينة الواجهة فقط.
+   4. لربط خدمة حقيقية:
+      • الصق مفتاح API في حقل «مفتاح API».
+      • الصق عنوان النقطة في حقل «عنوان نقطة النهاية».
+      يرسل التطبيق طلب POST بصيغة JSON:
         { q, source, target, model }
-      with header  Authorization: Bearer <apiKey>
-      and reads the translation from the first of:
-        translatedText · translation · output · result · data.translatedText
-      (or the raw text body if the response is not JSON).
-   5. Everything is persisted in localStorage:
-        API key · endpoint · languages · model · voice toggle ·
-        dark mode · palette · translation history (max 50 items).
-   6. Shortcuts: Ctrl/⌘ + Enter translates · Esc closes menus/dialogs.
-
-   No build step, no dependencies, no tracking.
+      مع ترويسة  Authorization: Bearer <apiKey>
+      ويقرأ الترجمة من أول حقل موجود في الاستجابة:
+        translatedText · translation · output · result ·
+        data.translatedText · data.translation
+      (أو يعيد النص الخام إذا لم تكن الاستجابة JSON).
+   5. كل شيء يُحفظ في localStorage:
+      مفتاح API · النقطة · اللغات · النموذج · الترجمة الصوتية ·
+      الوضع الليلي · لوحة الألوان · سجل الترجمات (بحد أقصى 50 عنصرًا).
+   6. اختصارات لوحة المفاتيح:
+      Ctrl/⌘ + Enter  → الترجمة
+      Esc             → إغلاق القوائم والنوافذ.
    ===================================================================== */
 
 'use strict';
 
 /* =====================================================================
-   1. CONSTANTS
+   1. الثوابت
    ===================================================================== */
 
 const STORE = {
@@ -47,75 +48,68 @@ const DEFAULT_COLORS = { primary: '#14b8a6', secondary: '#06b6d4', bg: '#f0fdfa'
 const DARK_BG        = '#04201e';
 const LIGHT_BG       = '#f0fdfa';
 
+/* أسماء اللغات بالعربية */
 const LANG_NAMES = {
-  auto:'Auto-detect', en:'English', es:'Spanish', fr:'French', de:'German',
-  it:'Italian', pt:'Portuguese', ru:'Russian', ar:'Arabic', zh:'Chinese',
-  ja:'Japanese', ko:'Korean', hi:'Hindi', tr:'Turkish', nl:'Dutch',
-  pl:'Polish', sv:'Swedish', da:'Danish', fi:'Finnish', no:'Norwegian',
-  el:'Greek', he:'Hebrew', th:'Thai', vi:'Vietnamese', id:'Indonesian',
-  ms:'Malay', uk:'Ukrainian', cs:'Czech', sk:'Slovak', hu:'Hungarian',
-  ro:'Romanian', bg:'Bulgarian', hr:'Croatian', sr:'Serbian', sl:'Slovenian',
-  fa:'Persian', ur:'Urdu', bn:'Bengali', ta:'Tamil', te:'Telugu',
-  sw:'Swahili', fil:'Filipino'
+  auto:'كشف تلقائي', ar:'العربية', en:'الإنجليزية', fr:'الفرنسية',
+  es:'الإسبانية', de:'الألمانية', it:'الإيطالية', pt:'البرتغالية',
+  ru:'الروسية', zh:'الصينية', ja:'اليابانية', ko:'الكورية',
+  hi:'الهندية', tr:'التركية', nl:'الهولندية', pl:'البولندية',
+  sv:'السويدية', da:'الدنماركية', fi:'الفنلندية', no:'النرويجية',
+  el:'اليونانية', he:'العبرية', th:'التايلاندية', vi:'الفيتنامية',
+  id:'الإندونيسية', ms:'الماليزية', uk:'الأوكرانية', cs:'التشيكية',
+  sk:'السلوفاكية', hu:'المجرية', ro:'الرومانية', bg:'البلغارية',
+  hr:'الكرواتية', sr:'الصربية', sl:'السلوفينية', fa:'الفارسية',
+  ur:'الأردية', bn:'البنغالية', ta:'التاميلية', te:'التيلوغوية',
+  sw:'السواحيلية', fil:'الفلبينية'
 };
 
-const MODEL_LABELS = { professional: 'Professional', standard: 'Standard', ai: 'AI-powered' };
+const MODEL_LABELS = {
+  professional: 'احترافي',
+  standard:     'قياسي',
+  ai:           'ذكاء اصطناعي'
+};
 
-/* BCP-47 tags for the Web Speech API */
+/* وسوم BCP-47 لخدمة Web Speech */
 const SPEECH_LANG = {
-  en:'en-US', es:'es-ES', fr:'fr-FR', de:'de-DE', it:'it-IT', pt:'pt-PT',
-  ru:'ru-RU', ar:'ar-SA', zh:'zh-CN', ja:'ja-JP', ko:'ko-KR', hi:'hi-IN',
-  tr:'tr-TR', nl:'nl-NL', pl:'pl-PL', sv:'sv-SE', da:'da-DK', fi:'fi-FI',
-  no:'nb-NO', el:'el-GR', he:'he-IL', th:'th-TH', vi:'vi-VN', id:'id-ID',
-  ms:'ms-MY', uk:'uk-UA', cs:'cs-CZ', sk:'sk-SK', hu:'hu-HU', ro:'ro-RO',
-  bg:'bg-BG', hr:'hr-HR', sr:'sr-RS', sl:'sl-SI', fa:'fa-IR', ur:'ur-PK',
-  bn:'bn-BD', ta:'ta-IN', te:'te-IN', sw:'sw-KE', fil:'fil-PH'
+  ar:'ar-SA', en:'en-US', fr:'fr-FR', es:'es-ES', de:'de-DE',
+  it:'it-IT', pt:'pt-PT', ru:'ru-RU', zh:'zh-CN', ja:'ja-JP',
+  ko:'ko-KR', hi:'hi-IN', tr:'tr-TR', nl:'nl-NL', pl:'pl-PL',
+  sv:'sv-SE', da:'da-DK', fi:'fi-FI', no:'nb-NO', el:'el-GR',
+  he:'he-IL', th:'th-TH', vi:'vi-VN', id:'id-ID', ms:'ms-MY',
+  uk:'uk-UA', cs:'cs-CZ', sk:'sk-SK', hu:'hu-HU', ro:'ro-RO',
+  bg:'bg-BG', hr:'hr-HR', sr:'sr-RS', sl:'sl-SI', fa:'fa-IR',
+  ur:'ur-PK', bn:'bn-BD', ta:'ta-IN', te:'te-IN', sw:'sw-KE',
+  fil:'fil-PH'
 };
 
-/* Tiny dictionary used only in demo mode (no endpoint configured). */
+/* قاموس صغير للوضع التجريبي (بالإنجليزية والعربية فقط) */
 const DEMO_DICT = {
-  es: { hello:'hola', hi:'hola', world:'mundo', good:'bueno', morning:'mañana',
-        night:'noche', thank:'gracias', thanks:'gracias', you:'tú', please:'por favor',
-        yes:'sí', no:'no', friend:'amigo', love:'amor', water:'agua', food:'comida',
-        house:'casa', book:'libro', translate:'traducir', translation:'traducción',
-        language:'idioma', welcome:'bienvenido', goodbye:'adiós', how:'cómo',
-        are:'estás', what:'qué', is:'es', this:'esto', name:'nombre', my:'mi',
-        your:'tu', the:'el', a:'un', and:'y', with:'con', for:'para', very:'muy',
-        i:'yo', am:'soy', we:'nosotros', they:'ellos', from:'de', to:'a',
-        in:'en', on:'en', of:'de', it:'eso', that:'eso', today:'hoy', tomorrow:'mañana' },
-  fr: { hello:'bonjour', hi:'salut', world:'monde', good:'bon', morning:'matin',
-        night:'nuit', thank:'merci', thanks:'merci', you:'vous', please:'s’il vous plaît',
-        yes:'oui', no:'non', friend:'ami', love:'amour', water:'eau', food:'nourriture',
-        house:'maison', book:'livre', translate:'traduire', translation:'traduction',
-        language:'langue', welcome:'bienvenue', goodbye:'au revoir', how:'comment',
-        are:'êtes', what:'quoi', is:'est', this:'ceci', name:'nom', my:'mon',
-        your:'votre', the:'le', a:'un', and:'et', with:'avec', for:'pour', very:'très',
-        i:'je', am:'suis', we:'nous', they:'ils', from:'de', to:'à', in:'dans',
-        on:'sur', of:'de', it:'il', that:'que', today:'aujourd’hui', tomorrow:'demain' },
-  de: { hello:'hallo', hi:'hallo', world:'Welt', good:'gut', morning:'Morgen',
-        night:'Nacht', thank:'danke', thanks:'danke', you:'du', please:'bitte',
-        yes:'ja', no:'nein', friend:'Freund', love:'Liebe', water:'Wasser',
-        food:'Essen', house:'Haus', book:'Buch', translate:'übersetzen',
-        translation:'Übersetzung', language:'Sprache', welcome:'willkommen',
-        goodbye:'auf Wiedersehen', how:'wie', are:'bist', what:'was', is:'ist',
-        this:'dies', name:'Name', my:'mein', your:'dein', the:'der', a:'ein',
-        and:'und', with:'mit', for:'für', very:'sehr', i:'ich', am:'bin',
-        we:'wir', they:'sie', from:'von', to:'zu', in:'in', on:'auf', of:'von',
-        it:'es', that:'das', today:'heute', tomorrow:'morgen' },
-  tr: { hello:'merhaba', hi:'selam', world:'dünya', good:'iyi', morning:'sabah',
-        night:'gece', thank:'teşekkür', thanks:'teşekkürler', you:'sen',
-        please:'lütfen', yes:'evet', no:'hayır', friend:'arkadaş', love:'aşk',
-        water:'su', food:'yemek', house:'ev', book:'kitap', translate:'çevir',
-        translation:'çeviri', language:'dil', welcome:'hoş geldiniz',
-        goodbye:'hoşça kal', how:'nasıl', are:'sın', what:'ne', is:'dir',
-        this:'bu', name:'isim', my:'benim', your:'senin', the:'', a:'bir',
-        and:'ve', with:'ile', for:'için', very:'çok', i:'ben', am:'im',
-        we:'biz', they:'onlar', from:'den', to:'e', in:'de', on:'da',
-        of:'in', it:'o', that:'şu', today:'bugün', tomorrow:'yarın' }
+  'en->ar': {
+    hello:'مرحبا', hi:'أهلاً', world:'عالم', good:'جيد', morning:'صباح',
+    evening:'مساء', night:'ليل', thank:'شكراً', thanks:'شكراً', please:'من فضلك',
+    yes:'نعم', no:'لا', friend:'صديق', love:'حب', water:'ماء', food:'طعام',
+    house:'بيت', book:'كتاب', translate:'ترجم', translation:'ترجمة',
+    language:'لغة', welcome:'أهلاً وسهلاً', goodbye:'وداعاً', how:'كيف',
+    what:'ماذا', is:'هو', this:'هذا', name:'اسم', my:'لي', your:'لك',
+    the:'ال', and:'و', with:'مع', for:'لأجل', very:'جداً', i:'أنا',
+    am:'أكون', we:'نحن', they:'هم', from:'من', to:'إلى', in:'في',
+    on:'على', of:'من', it:'هو', that:'ذلك', today:'اليوم', tomorrow:'غداً'
+  },
+  'ar->en': {
+    'مرحبا':'hello', 'أهلاً':'hi', 'عالم':'world', 'جيد':'good',
+    'صباح':'morning', 'مساء':'evening', 'ليل':'night', 'شكراً':'thanks',
+    'من فضلك':'please', 'نعم':'yes', 'لا':'no', 'صديق':'friend',
+    'حب':'love', 'ماء':'water', 'طعام':'food', 'بيت':'house',
+    'كتاب':'book', 'ترجم':'translate', 'ترجمة':'translation',
+    'لغة':'language', 'وداعاً':'goodbye', 'كيف':'how', 'ماذا':'what',
+    'هو':'is', 'هذا':'this', 'اسم':'name', 'أنا':'I', 'نحن':'we',
+    'هم':'they', 'من':'from', 'إلى':'to', 'في':'in', 'على':'on',
+    'اليوم':'today', 'غداً':'tomorrow'
+  }
 };
 
 /* =====================================================================
-   2. TINY HELPERS
+   2. أدوات مساعدة صغيرة
    ===================================================================== */
 
 const $  = (sel, root = document) => root.querySelector(sel);
@@ -123,7 +117,7 @@ const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-/* Safe localStorage wrappers — private mode / quota can throw. */
+/* غلاف آمن لـ localStorage — الوضع الخاص أو تجاوز الحصة قد يرمي استثناءً */
 const store = {
   get(key, fallback = null) {
     try {
@@ -133,10 +127,10 @@ const store = {
   },
   set(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); }
-    catch (err) { console.warn('[storage] write failed', key, err); }
+    catch (err) { console.warn('[storage] فشل الكتابة', key, err); }
   },
   remove(key) {
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
+    try { localStorage.removeItem(key); } catch { /* تجاهل */ }
   }
 };
 
@@ -145,7 +139,7 @@ const debounce = (fn, ms = 220) => {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 };
 
-/* ---------------- Colour maths (for accessible theming) ---------------- */
+/* ---------------- رياضيات الألوان (لضمان تباين وصولي) ---------------- */
 
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
@@ -173,7 +167,7 @@ function rgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/* WCAG relative luminance */
+/* الإنارة النسبية وفق WCAG */
 function luminance(hex) {
   const { r, g, b } = hexToRgb(hex);
   const ch = c => {
@@ -189,99 +183,99 @@ function contrast(hexA, hexB) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/* Pick the readable foreground for a given background. */
+/* اختيار لون أمامي مقروء لخلفية معيّنة */
 function bestOn(bg) {
-  const dark = '#042f2e';
+  const dark  = '#042f2e';
   const light = '#ffffff';
   return contrast(bg, dark) >= contrast(bg, light) ? dark : light;
 }
 
 /* =====================================================================
-   3. APPLICATION STATE
+   3. حالة التطبيق
    ===================================================================== */
 
 const state = {
-  apiKey: '',
+  apiKey:   '',
   endpoint: '',
-  source: 'auto',
-  target: 'es',
-  model: 'professional',
-  voice: false,
-  dark: false,
-  colors: { ...DEFAULT_COLORS },
-  history: []
+  source:   'auto',
+  target:   'ar',
+  model:    'professional',
+  voice:    false,
+  dark:     false,
+  colors:   { ...DEFAULT_COLORS },
+  history:  []
 };
 
-/* Imported file names for the current draft (kept in memory only). */
+/* أسماء الملفات المستوردة للنص الحالي (في الذاكرة فقط) */
 let importedFiles = [];
 
 /* =====================================================================
-   4. DOM REFERENCES
+   4. مراجع DOM
    ===================================================================== */
 
 const el = {
   root: document.documentElement,
 
-  menuBtn: $('#menuBtn'),
-  menu: $('#menuDropdown'),
-  darkSwitch: $('#darkModeSwitch'),
-  menuColors: $('#menuColors'),
-  menuHistory: $('#menuHistory'),
-  menuClearHistory: $('#menuClearHistory'),
+  menuBtn:           $('#menuBtn'),
+  menu:              $('#menuDropdown'),
+  darkSwitch:        $('#darkModeSwitch'),
+  menuColors:        $('#menuColors'),
+  menuHistory:       $('#menuHistory'),
+  menuClearHistory:  $('#menuClearHistory'),
 
-  apiKey: $('#apiKey'),
-  toggleKeyBtn: $('#toggleKeyBtn'),
-  apiEndpoint: $('#apiEndpoint'),
-  endpointBadge: $('#endpointBadge'),
+  apiKey:            $('#apiKey'),
+  toggleKeyBtn:      $('#toggleKeyBtn'),
+  apiEndpoint:       $('#apiEndpoint'),
+  endpointBadge:     $('#endpointBadge'),
 
-  importBtn: $('#importBtn'),
-  fileInput: $('#fileInput'),
-  colorsBtn: $('#colorsBtn'),
-  clearHistoryBtn: $('#clearHistoryBtn'),
-  voiceSwitch: $('#voiceSwitch'),
+  importBtn:         $('#importBtn'),
+  fileInput:         $('#fileInput'),
+  colorsBtn:         $('#colorsBtn'),
+  clearHistoryBtn:   $('#clearHistoryBtn'),
+  voiceSwitch:       $('#voiceSwitch'),
 
-  sourceLang: $('#sourceLang'),
-  targetLang: $('#targetLang'),
-  swapBtn: $('#swapBtn'),
-  modelSelect: $('#modelSelect'),
+  sourceLang:        $('#sourceLang'),
+  targetLang:        $('#targetLang'),
+  swapBtn:           $('#swapBtn'),
+  modelSelect:       $('#modelSelect'),
 
-  inputText: $('#inputText'),
-  charCount: $('#charCount'),
-  fileChips: $('#fileChips'),
-  clearInputBtn: $('#clearInputBtn'),
+  inputText:         $('#inputText'),
+  charCount:         $('#charCount'),
+  fileChips:         $('#fileChips'),
+  clearInputBtn:     $('#clearInputBtn'),
 
-  outputText: $('#outputText'),
-  outputMeta: $('#outputMeta'),
-  outputInfo: $('#outputInfo'),
-  speakBtn: $('#speakBtn'),
-  copyBtn: $('#copyBtn'),
+  outputText:        $('#outputText'),
+  outputMeta:        $('#outputMeta'),
+  outputInfo:        $('#outputInfo'),
+  speakBtn:          $('#speakBtn'),
+  copyBtn:           $('#copyBtn'),
 
-  translateBtn: $('#translateBtn'),
-  spinner: $('#spinner'),
-  feedback: $('#feedback'),
-  statusPill: $('#statusPill'),
+  translateBtn:      $('#translateBtn'),
+  spinner:           $('#spinner'),
+  feedback:          $('#feedback'),
+  statusPill:        $('#statusPill'),
 
-  historyCard: $('#historyCard'),
-  historyList: $('#historyList'),
-  historyEmpty: $('#historyEmpty'),
-  historyHideBtn: $('#historyHideBtn'),
+  historyCard:       $('#historyCard'),
+  historyList:       $('#historyList'),
+  historyEmpty:      $('#historyEmpty'),
+  historyHideBtn:    $('#historyHideBtn'),
 
-  colorDialog: $('#colorDialog'),
-  colorPrimary: $('#colorPrimary'),
-  colorSecondary: $('#colorSecondary'),
-  colorBg: $('#colorBg'),
-  contrastReport: $('#contrastReport'),
-  resetColorsBtn: $('#resetColorsBtn'),
+  colorDialog:       $('#colorDialog'),
+  colorPrimary:      $('#colorPrimary'),
+  colorSecondary:    $('#colorSecondary'),
+  colorBg:           $('#colorBg'),
+  contrastReport:    $('#contrastReport'),
+  resetColorsBtn:    $('#resetColorsBtn'),
 
-  toastStack: $('#toastStack')
+  toastStack:        $('#toastStack')
 };
 
 /* =====================================================================
-   5. THEME & COLOUR APPLICATION
+   5. السمة والألوان
    ===================================================================== */
 
-/* Push the palette into CSS custom properties and derive contrast-safe
-   foregrounds. Runs on load, on palette change and on dark-mode toggle. */
+/* دفع اللوحة إلى خصائص CSS واستخلاص لون نص متباين تلقائيًا.
+   تنفَّذ عند الإقلاع، وعند تغيير اللوحة، وعند تبديل الوضع الليلي. */
 function applyColors(colors) {
   const { primary, secondary, bg } = colors;
   const dark = state.dark;
@@ -290,7 +284,7 @@ function applyColors(colors) {
   const onPrimary   = bestOn(primary);
   const onSecondary = bestOn(secondary);
 
-  /* Surface is a soft step away from the background. */
+  /* السطح: خطوة ناعمة مبتعدة عن الخلفية */
   const surface = dark ? mix(bg, '#ffffff', 0.07) : mix(bg, '#ffffff', 0.62);
 
   const muted        = rgba(text, 0.66);
@@ -311,7 +305,7 @@ function applyColors(colors) {
   s.setProperty('--on-secondary', onSecondary);
   s.setProperty('--ring', ring);
 
-  /* Keep the browser chrome (mobile address bar) in sync. */
+  /* مزامنة لون شريط المتصفح (theme-color) */
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', primary);
 }
@@ -323,7 +317,7 @@ function applyTheme() {
 }
 
 /* =====================================================================
-   6. STATUS / FEEDBACK / TOASTS
+   6. الحالة / التغذية الراجعة / التنبيهات
    ===================================================================== */
 
 function setStatus(kind, label) {
@@ -352,19 +346,19 @@ function toast(message, kind = 'info', timeout = 3400) {
 function setLoading(isLoading) {
   el.translateBtn.disabled = isLoading;
   el.spinner.hidden = !isLoading;
-  $('.btn-label', el.translateBtn).textContent = isLoading ? 'Translating…' : 'Translate';
-  if (isLoading) setStatus('working', 'Working');
+  $('.btn-label', el.translateBtn).textContent = isLoading ? 'جارٍ الترجمة…' : 'ترجم';
+  if (isLoading) setStatus('working', 'يعمل');
 }
 
 /* =====================================================================
-   7. PERSISTENCE
+   7. التخزين
    ===================================================================== */
 
 function loadSettings() {
   state.apiKey   = store.get(STORE.key, '') ?? '';
   state.endpoint = store.get(STORE.endpoint, '') ?? '';
   state.source   = store.get(STORE.source, 'auto');
-  state.target   = store.get(STORE.target, 'es');
+  state.target   = store.get(STORE.target, 'ar');
   state.model    = store.get(STORE.model, 'professional');
   state.voice    = store.get(STORE.voice, false) === true;
   state.dark     = store.get(STORE.dark, false) === true;
@@ -377,7 +371,7 @@ function loadSettings() {
   const hist = store.get(STORE.history, []);
   state.history = Array.isArray(hist) ? hist.slice(0, 50) : [];
 
-  /* Reflect into the form controls */
+  /* مزامنة عناصر النموذج */
   el.apiKey.value = state.apiKey;
   el.apiEndpoint.value = state.endpoint;
   el.sourceLang.value = state.source;
@@ -402,12 +396,12 @@ const saveHistory = () => store.set(STORE.history, state.history.slice(0, 50));
 
 function updateEndpointBadge() {
   const live = Boolean(state.endpoint.trim() && state.apiKey.trim());
-  el.endpointBadge.textContent = live ? 'Live API' : 'Demo mode';
+  el.endpointBadge.textContent = live ? 'API حيّ' : 'الوضع التجريبي';
   el.endpointBadge.classList.toggle('live', live);
 }
 
 /* =====================================================================
-   8. MENU (three-dot dropdown)
+   8. القائمة المنسدلة
    ===================================================================== */
 
 function openMenu() {
@@ -424,14 +418,14 @@ el.menuBtn.addEventListener('click', (e) => {
   el.menu.hidden ? openMenu() : closeMenu();
 });
 
-/* Close on outside click */
+/* إغلاق عند النقر خارج القائمة */
 document.addEventListener('click', (e) => {
   if (el.menu.hidden) return;
   if (el.menu.contains(e.target) || el.menuBtn.contains(e.target)) return;
   closeMenu();
 });
 
-/* Close on Escape */
+/* إغلاق بمفتاح Escape */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !el.menu.hidden) {
     closeMenu();
@@ -439,27 +433,27 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* Menu items */
+/* عناصر القائمة */
 el.menuColors.addEventListener('click', () => { closeMenu(); openColorDialog(); });
 el.menuHistory.addEventListener('click', () => { closeMenu(); showHistory(true); });
 el.menuClearHistory.addEventListener('click', () => { closeMenu(); clearHistory(); });
 
-/* Dark-mode switch (in the dropdown) */
+/* مفتاح الوضع الليلي */
 el.darkSwitch.addEventListener('change', () => {
   state.dark = el.darkSwitch.checked;
 
-  /* Swap only the default backgrounds so custom palettes survive. */
+  /* تبديل الخلفية الافتراضية فقط كي لا نفقد لوحة المستخدم */
   const bg = state.colors.bg.toLowerCase();
   if (state.dark && bg === LIGHT_BG) state.colors.bg = DARK_BG;
   if (!state.dark && bg === DARK_BG) state.colors.bg = LIGHT_BG;
 
   applyTheme();
   saveSettings();
-  toast(state.dark ? 'Dark mode on' : 'Dark mode off', 'info', 1800);
+  toast(state.dark ? 'تم تفعيل الوضع الليلي' : 'تم تعطيل الوضع الليلي', 'info', 1800);
 });
 
 /* =====================================================================
-   9. API CONFIGURATION INPUTS
+   9. حقول إعدادات API
    ===================================================================== */
 
 el.apiKey.addEventListener('input', debounce(() => {
@@ -474,16 +468,16 @@ el.apiEndpoint.addEventListener('input', debounce(() => {
   saveSettings();
 }, 250));
 
-/* Show / hide the key */
+/* إظهار / إخفاء المفتاح */
 el.toggleKeyBtn.addEventListener('click', () => {
   const visible = el.apiKey.type === 'text';
   el.apiKey.type = visible ? 'password' : 'text';
   el.toggleKeyBtn.setAttribute('aria-pressed', String(!visible));
-  el.toggleKeyBtn.setAttribute('aria-label', visible ? 'Show API key' : 'Hide API key');
+  el.toggleKeyBtn.setAttribute('aria-label', visible ? 'إظهار مفتاح API' : 'إخفاء مفتاح API');
 });
 
 /* =====================================================================
-   10. LANGUAGE / MODEL SELECTION
+   10. اختيار اللغات والنموذج
    ===================================================================== */
 
 el.sourceLang.addEventListener('change', () => {
@@ -502,7 +496,7 @@ el.modelSelect.addEventListener('change', () => {
   saveSettings();
 });
 
-/* Swap languages. If source is "auto", fall back to English. */
+/* تبديل اللغتين. عند وجود «كشف تلقائي» نستخدم الإنجليزية كافتراضي */
 el.swapBtn.addEventListener('click', () => {
   const from = state.source === 'auto' ? 'en' : state.source;
   const to = state.target;
@@ -512,49 +506,51 @@ el.swapBtn.addEventListener('click', () => {
   el.targetLang.value = state.target;
   saveSettings();
   updateOutputInfo();
-  toast('Languages swapped', 'info', 1600);
+  toast('تم تبديل اللغتين', 'info', 1600);
 });
 
 /* =====================================================================
-   11. VOICE TRANSLATION
+   11. الترجمة الصوتية
    ===================================================================== */
 
 el.voiceSwitch.addEventListener('change', () => {
   state.voice = el.voiceSwitch.checked;
   saveSettings();
-  if (state.voice) toast('Voice translation enabled — results will be read aloud.', 'info');
+  if (state.voice) {
+    toast('تم تفعيل الترجمة الصوتية — ستُقرأ النتائج بصوت عالٍ.', 'info');
+  }
 });
 
 function speak(text, lang) {
   if (!text) return;
   if (!('speechSynthesis' in window)) {
-    toast('Speech synthesis is not supported in this browser.', 'error');
+    toast('متصفحك لا يدعم تحويل النص إلى كلام.', 'error');
     return;
   }
   try {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = SPEECH_LANG[lang] || lang || 'en-US';
+    utter.lang = SPEECH_LANG[lang] || lang || 'ar-SA';
     utter.rate = 1;
     utter.pitch = 1;
     window.speechSynthesis.speak(utter);
   } catch (err) {
     console.warn('[speech]', err);
-    toast('Could not play the audio.', 'error');
+    toast('تعذّر تشغيل الصوت.', 'error');
   }
 }
 
 el.speakBtn.addEventListener('click', () => {
   const text = el.outputText.value.trim();
-  if (!text) return toast('Nothing to read yet.', 'error');
+  if (!text) return toast('لا يوجد نص للقراءة بعد.', 'error');
   speak(text, state.target);
 });
 
 /* =====================================================================
-   12. FILE IMPORT
+   12. استيراد الملفات
    ===================================================================== */
 
-const MAX_FILE_BYTES = 1.5 * 1024 * 1024; // 1.5 MB per file
+const MAX_FILE_BYTES = 1.5 * 1024 * 1024; // 1.5 ميغابايت لكل ملف
 
 el.importBtn.addEventListener('click', () => el.fileInput.click());
 
@@ -568,20 +564,20 @@ el.fileInput.addEventListener('change', async () => {
   for (const file of files) {
     try {
       if (file.size > MAX_FILE_BYTES) {
-        toast(`"${file.name}" is too large (max 1.5 MB).`, 'error');
+        toast(`"${file.name}" كبير جدًا (الحد 1.5 ميغابايت).`, 'error');
         continue;
       }
       const text = await file.text();
 
-      /* Cheap binary sniffing: NUL bytes in the first 1000 chars. */
+      /* فحص سريع للثنائيات: وجود NUL في أول 1000 حرف */
       if (text.slice(0, 1000).includes('\u0000')) {
-        toast(`"${file.name}" looks like a binary file and was skipped.`, 'error');
+        toast(`"${file.name}" يبدو ملفًا ثنائيًا وتم تجاهله.`, 'error');
         continue;
       }
 
       const clean = text.replace(/\r\n?/g, '\n').trim();
       if (!clean) {
-        toast(`"${file.name}" is empty and was skipped.`, 'info');
+        toast(`"${file.name}" فارغ وتم تجاهله.`, 'info');
         continue;
       }
 
@@ -589,11 +585,11 @@ el.fileInput.addEventListener('change', async () => {
       accepted.push({ name: file.name, size: file.size });
     } catch (err) {
       console.error(err);
-      toast(`Could not read "${file.name}".`, 'error');
+      toast(`تعذّرت قراءة "${file.name}".`, 'error');
     }
   }
 
-  el.fileInput.value = ''; // allow re-selecting the same file
+  el.fileInput.value = ''; // للسماح بإعادة اختيار الملف نفسه
 
   if (!parts.length) return;
 
@@ -603,8 +599,8 @@ el.fileInput.addEventListener('change', async () => {
   importedFiles = importedFiles.concat(accepted);
   renderFileChips();
   updateCharCount();
-  setFeedback(`Imported ${accepted.length} file(s).`, 'success');
-  toast(`Imported ${accepted.length} file(s).`, 'success');
+  setFeedback(`تم استيراد ${accepted.length} ملف/ملفات.`, 'success');
+  toast(`تم استيراد ${accepted.length} ملف/ملفات.`, 'success');
 });
 
 function renderFileChips() {
@@ -614,18 +610,18 @@ function renderFileChips() {
 }
 
 /* =====================================================================
-   13. INPUT PANE
+   13. لوحة الإدخال
    ===================================================================== */
 
 function updateCharCount() {
   const n = el.inputText.value.length;
-  el.charCount.textContent = `${n.toLocaleString()} character${n === 1 ? '' : 's'}`;
+  el.charCount.textContent = `${n.toLocaleString('ar-EG')} حرف`;
 }
 
 function updateOutputInfo() {
   const from = LANG_NAMES[state.source] || state.source;
   const to = LANG_NAMES[state.target] || state.target;
-  el.outputMeta.textContent = `${from} → ${to} · ${MODEL_LABELS[state.model] || state.model}`;
+  el.outputMeta.textContent = `${from} ← ${to} · ${MODEL_LABELS[state.model] || state.model}`;
 }
 
 el.inputText.addEventListener('input', updateCharCount);
@@ -639,13 +635,13 @@ el.clearInputBtn.addEventListener('click', () => {
 });
 
 /* =====================================================================
-   14. TRANSLATION
+   14. الترجمة
    ===================================================================== */
 
 /**
- * Call the configured endpoint.
- * The contract is intentionally forgiving: many providers differ slightly,
- * so we try the most common response shapes before giving up.
+ * إرسال الطلب إلى نقطة النهاية المُهيّأة.
+ * العقد متساهل بقصدٍ: خدمات كثيرة تختلف قليلًا في شكل الاستجابة،
+ * لذلك نجرب الأشكال الشائعة بالترتيب.
  */
 async function callApi({ endpoint, apiKey, text, source, target, model }) {
   const controller = new AbortController();
@@ -663,8 +659,8 @@ async function callApi({ endpoint, apiKey, text, source, target, model }) {
       signal: controller.signal
     });
   } catch (err) {
-    if (err.name === 'AbortError') throw new Error('Request timed out after 30 seconds.');
-    throw new Error('Network error — check the endpoint URL and your connection.');
+    if (err.name === 'AbortError') throw new Error('انتهت مهلة الطلب بعد 30 ثانية.');
+    throw new Error('خطأ في الشبكة — تحقّق من عنوان النقطة واتصالك.');
   } finally {
     clearTimeout(timer);
   }
@@ -674,16 +670,16 @@ async function callApi({ endpoint, apiKey, text, source, target, model }) {
     try {
       const body = await res.text();
       if (body) detail = ` — ${body.slice(0, 180)}`;
-    } catch { /* ignore */ }
-    throw new Error(`API responded with HTTP ${res.status}${detail}`);
+    } catch { /* تجاهل */ }
+    throw new Error(`استجاب الـ API بالرمز HTTP ${res.status}${detail}`);
   }
 
   const raw = await res.text();
-  if (!raw) throw new Error('The API returned an empty response.');
+  if (!raw) throw new Error('أعاد الـ API استجابة فارغة.');
 
   let data;
   try { data = JSON.parse(raw); }
-  catch { return raw.trim(); } // plain-text API
+  catch { return raw.trim(); } // API بنص عادي
 
   const candidate =
     data.translatedText ??
@@ -695,19 +691,27 @@ async function callApi({ endpoint, apiKey, text, source, target, model }) {
     data.choices?.[0]?.message?.content;
 
   if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
-  throw new Error('Could not find a translation in the API response.');
+  throw new Error('تعذّر العثور على ترجمة في استجابة الـ API.');
 }
 
-/** Demo mode: word-by-word dictionary substitution. */
-function demoTranslate(text, target) {
-  const dict = DEMO_DICT[target];
+/* كشف اتجاه اللغة في الوضع التجريبي (عربي أو إنجليزي) */
+function detectLang(text) {
+  return /[\u0600-\u06FF]/.test(text) ? 'ar' : 'en';
+}
+
+/** الوضع التجريبي: استبدال كلمة بكلمة عبر القاموس المدمج. */
+function demoTranslate(text, target, source) {
+  const src = source === 'auto' ? detectLang(text) : source;
+  const key = `${src}->${target}`;
+  const dict = DEMO_DICT[key];
+
   if (!dict) {
     return `[${LANG_NAMES[target] || target}] ${text}`;
   }
+
   return text.replace(/\b[\p{L}\p{M}']+\b/gu, (word) => {
-    const key = word.toLowerCase();
-    if (!(key in dict)) return word;
-    const out = dict[key];
+    const lookup = word.toLowerCase();
+    const out = dict[lookup] ?? dict[word];
     if (!out) return word;
     return /^\p{Lu}/u.test(word)
       ? out.charAt(0).toUpperCase() + out.slice(1)
@@ -719,15 +723,15 @@ async function doTranslate() {
   const text = el.inputText.value.trim();
 
   if (!text) {
-    setFeedback('Please enter or import some text first.', 'error');
-    setStatus('error', 'Empty input');
+    setFeedback('الرجاء إدخال أو استيراد نص أولاً.', 'error');
+    setStatus('error', 'إدخال فارغ');
     el.inputText.focus();
     return;
   }
 
   if (state.source !== 'auto' && state.source === state.target) {
-    setFeedback('Source and target languages are the same.', 'error');
-    setStatus('error', 'Same language');
+    setFeedback('لغتا المصدر والهدف متطابقتان.', 'error');
+    setStatus('error', 'نفس اللغة');
     return;
   }
 
@@ -745,43 +749,43 @@ async function doTranslate() {
     if (useLive) {
       translated = await callApi({
         endpoint: state.endpoint,
-        apiKey: state.apiKey,
+        apiKey:   state.apiKey,
         text,
-        source: state.source,
-        target: state.target,
-        model: state.model
+        source:   state.source,
+        target:   state.target,
+        model:    state.model
       });
-      setFeedback('Translated via your API.', 'success');
+      setFeedback('تمت الترجمة عبر الـ API الخاص بك.', 'success');
     } else {
-      await sleep(420); // keep the spinner visible long enough to feel real
-      translated = demoTranslate(text, state.target);
-      setFeedback('Demo mode — add an endpoint and key for live translations.', 'success');
+      await sleep(420); // إبقاء المؤشر ظاهرًا لمدة معقولة
+      translated = demoTranslate(text, state.target, state.source);
+      setFeedback('وضع تجريبي — أضف النقطة والمفتاح لترجمة حقيقية.', 'success');
     }
 
     el.outputText.value = translated;
 
     const ms = Math.round(performance.now() - started);
-    el.outputInfo.textContent = `${translated.length.toLocaleString()} chars · ${ms} ms`;
+    el.outputInfo.textContent = `${translated.length.toLocaleString('ar-EG')} حرف · ${ms} م.ث`;
     updateOutputInfo();
 
     addHistory({
       ts: Date.now(),
       source: state.source,
       target: state.target,
-      model: state.model,
-      input: text,
+      model:  state.model,
+      input:  text,
       output: translated
     });
 
     if (state.voice) speak(translated, state.target);
 
-    setStatus('success', 'Done');
-    toast('Translation ready.', 'success', 2200);
+    setStatus('success', 'تم');
+    toast('الترجمة جاهزة.', 'success', 2200);
   } catch (err) {
     console.error('[translate]', err);
-    const message = err?.message || 'Translation failed.';
+    const message = err?.message || 'فشلت الترجمة.';
     setFeedback(message, 'error');
-    setStatus('error', 'Failed');
+    setStatus('error', 'فشل');
     toast(message, 'error', 5200);
   } finally {
     setLoading(false);
@@ -790,7 +794,7 @@ async function doTranslate() {
 
 el.translateBtn.addEventListener('click', doTranslate);
 
-/* Ctrl / ⌘ + Enter anywhere in the translator card */
+/* Ctrl / ⌘ + Enter للترجمة السريعة */
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
@@ -799,12 +803,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* =====================================================================
-   15. OUTPUT ACTIONS
+   15. إجراءات الإخراج
    ===================================================================== */
 
 el.copyBtn.addEventListener('click', async () => {
   const text = el.outputText.value;
-  if (!text) return toast('Nothing to copy yet.', 'error');
+  if (!text) return toast('لا يوجد نص للنسخ بعد.', 'error');
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
@@ -812,14 +816,14 @@ el.copyBtn.addEventListener('click', async () => {
       el.outputText.select();
       document.execCommand('copy');
     }
-    toast('Copied to clipboard.', 'success', 1800);
+    toast('تم النسخ إلى الحافظة.', 'success', 1800);
   } catch {
-    toast('Copy failed — please select the text manually.', 'error');
+    toast('فشل النسخ — اختر النص يدويًا.', 'error');
   }
 });
 
 /* =====================================================================
-   16. HISTORY
+   16. السجل
    ===================================================================== */
 
 function addHistory(entry) {
@@ -853,11 +857,11 @@ function renderHistory() {
     badge.textContent = MODEL_LABELS[item.model] || item.model;
 
     const langs = document.createElement('span');
-    langs.textContent = `${LANG_NAMES[item.source] || item.source} → ${LANG_NAMES[item.target] || item.target}`;
+    langs.textContent = `${LANG_NAMES[item.source] || item.source} ← ${LANG_NAMES[item.target] || item.target}`;
 
     const time = document.createElement('time');
     time.dateTime = new Date(item.ts).toISOString();
-    time.textContent = new Date(item.ts).toLocaleString();
+    time.textContent = new Date(item.ts).toLocaleString('ar-EG');
 
     meta.append(badge, langs, time);
 
@@ -873,9 +877,9 @@ function renderHistory() {
     actions.className = 'history-actions';
 
     actions.append(
-      historyButton('Reuse', 'reuse', index),
-      historyButton('🔊', 'speak', index, 'Read aloud'),
-      historyButton('Copy', 'copy', index)
+      historyButton('إعادة الاستخدام', 'reuse', index),
+      historyButton('🔊', 'speak', index, 'قراءة بصوت عالٍ'),
+      historyButton('نسخ', 'copy', index)
     );
 
     li.append(meta, src, out, actions);
@@ -901,7 +905,7 @@ function truncate(str, n) {
   return clean.length > n ? `${clean.slice(0, n - 1)}…` : clean;
 }
 
-/* Event delegation for history actions */
+/* تفويض أحداث أزرار السجل */
 el.historyList.addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
@@ -924,7 +928,7 @@ el.historyList.addEventListener('click', async (e) => {
       updateCharCount();
       updateOutputInfo();
       el.outputInfo.textContent = '';
-      toast('Loaded into the translator.', 'info', 1800);
+      toast('تم تحميل الترجمة في المترجم.', 'info', 1800);
       el.inputText.focus();
       break;
 
@@ -935,9 +939,9 @@ el.historyList.addEventListener('click', async (e) => {
     case 'copy':
       try {
         await navigator.clipboard.writeText(item.output);
-        toast('Copied to clipboard.', 'success', 1800);
+        toast('تم النسخ إلى الحافظة.', 'success', 1800);
       } catch {
-        toast('Copy failed.', 'error');
+        toast('فشل النسخ.', 'error');
       }
       break;
   }
@@ -945,16 +949,16 @@ el.historyList.addEventListener('click', async (e) => {
 
 function clearHistory() {
   if (!state.history.length) {
-    toast('History is already empty.', 'info', 1800);
+    toast('السجل فارغ بالفعل.', 'info', 1800);
     return;
   }
-  const ok = window.confirm('Delete all saved translations? This cannot be undone.');
+  const ok = window.confirm('حذف جميع الترجمات المحفوظة؟ لا يمكن التراجع.');
   if (!ok) return;
 
   state.history = [];
   store.remove(STORE.history);
   renderHistory();
-  toast('History cleared.', 'success', 2000);
+  toast('تم مسح السجل.', 'success', 2000);
 }
 
 el.clearHistoryBtn.addEventListener('click', clearHistory);
@@ -972,30 +976,30 @@ el.historyHideBtn.addEventListener('click', () => {
 });
 
 /* =====================================================================
-   17. SITE COLORS DIALOG
+   17. نافذة ألوان الموقع
    ===================================================================== */
 
 function openColorDialog() {
-  el.colorPrimary.value = state.colors.primary;
+  el.colorPrimary.value   = state.colors.primary;
   el.colorSecondary.value = state.colors.secondary;
-  el.colorBg.value = state.colors.bg;
+  el.colorBg.value        = state.colors.bg;
   updateContrastReport();
 
   if (typeof el.colorDialog.showModal === 'function') {
     el.colorDialog.showModal();
   } else {
-    el.colorDialog.setAttribute('open', ''); // very old browser fallback
+    el.colorDialog.setAttribute('open', '');
   }
 }
 
 el.colorsBtn.addEventListener('click', openColorDialog);
 
-/* Live preview while the user drags a colour picker */
+/* معاينة حيّة أثناء سحب المنتقي */
 function onColorInput() {
   state.colors = {
-    primary: el.colorPrimary.value,
+    primary:   el.colorPrimary.value,
     secondary: el.colorSecondary.value,
-    bg: el.colorBg.value
+    bg:        el.colorBg.value
   };
   applyColors(state.colors);
   updateContrastReport();
@@ -1005,7 +1009,7 @@ el.colorPrimary.addEventListener('input', onColorInput);
 el.colorSecondary.addEventListener('input', onColorInput);
 el.colorBg.addEventListener('input', onColorInput);
 
-/* Persist when the dialog closes (Done, Esc or ✕) */
+/* التثبيت عند إغلاق النافذة (تم / Esc / ✕) */
 el.colorDialog.addEventListener('close', () => {
   saveSettings();
   applyColors(state.colors);
@@ -1013,25 +1017,24 @@ el.colorDialog.addEventListener('close', () => {
 
 el.resetColorsBtn.addEventListener('click', () => {
   state.colors = { ...DEFAULT_COLORS };
-  /* If dark mode is active, restore the dark background instead. */
   if (state.dark) state.colors.bg = DARK_BG;
 
-  el.colorPrimary.value = state.colors.primary;
+  el.colorPrimary.value   = state.colors.primary;
   el.colorSecondary.value = state.colors.secondary;
-  el.colorBg.value = state.colors.bg;
+  el.colorBg.value        = state.colors.bg;
 
   applyColors(state.colors);
   updateContrastReport();
   saveSettings();
-  toast('Palette reset to defaults.', 'info', 1800);
+  toast('أُعيدت اللوحة إلى الافتراضية.', 'info', 1800);
 });
 
-/* Contrast readout inside the dialog */
+/* تقرير التباين داخل النافذة */
 function updateContrastReport() {
   const rows = [
-    ['Button text on primary', contrast(state.colors.primary, bestOn(state.colors.primary))],
-    ['Body text on background', contrast(state.colors.bg, bestOn(state.colors.bg))],
-    ['Accents on secondary', contrast(state.colors.secondary, bestOn(state.colors.secondary))]
+    ['نص الزر على الأساسي',   contrast(state.colors.primary, bestOn(state.colors.primary))],
+    ['نص المتن على الخلفية', contrast(state.colors.bg, bestOn(state.colors.bg))],
+    ['اللمسات على الثانوي',  contrast(state.colors.secondary, bestOn(state.colors.secondary))]
   ];
 
   el.contrastReport.innerHTML = '';
@@ -1045,7 +1048,7 @@ function updateContrastReport() {
     const value = document.createElement('span');
     const ok = ratio >= 4.5;
     value.className = ok ? 'pass' : 'fail';
-    value.innerHTML = `<span class="ratio">${ratio.toFixed(2)}:1</span> ${ok ? '✓ AA' : '✗ low'}`;
+    value.innerHTML = `<span class="ratio">${ratio.toFixed(2)}:1</span> ${ok ? '✓ AA' : '✗ منخفض'}`;
 
     row.append(name, value);
     el.contrastReport.appendChild(row);
@@ -1053,7 +1056,7 @@ function updateContrastReport() {
 }
 
 /* =====================================================================
-   18. BOOTSTRAP
+   18. الإقلاع
    ===================================================================== */
 
 function init() {
@@ -1062,12 +1065,12 @@ function init() {
   updateOutputInfo();
   updateCharCount();
   renderHistory();
-  setStatus('idle', 'Ready');
+  setStatus('idle', 'جاهز');
 
-  /* Small, friendly first-run hint. */
+  /* تلميح لطيف أول مرة */
   if (!state.apiKey && !state.endpoint) {
     setTimeout(() => {
-      toast('Tip: add your API key and endpoint — or try demo mode right away.', 'info', 5200);
+      toast('نصيحة: أضف مفتاح API ونقطة النهاية — أو جرّب الوضع التجريبي مباشرةً.', 'info', 5200);
     }, 900);
   }
 }
