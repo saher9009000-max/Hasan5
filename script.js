@@ -1,977 +1,1075 @@
-/* ═══════════════════════════════════════════════════════
-   ترجمان — التطبيق الكامل
-   ═══════════════════════════════════════════════════════ */
+/* =====================================================================
+   Turquoise Translate — app.js
+   ---------------------------------------------------------------------
+   README / SETUP (short version)
+   ---------------------------------------------------------------------
+   1. Put index.html, styles.css and app.js in the same folder.
+   2. Open index.html directly in a browser (file:// works) or serve it
+      from any static host (GitHub Pages, Netlify, nginx, …).
+   3. Without an API endpoint the app runs in *demo mode* using a small
+      built-in dictionary — handy for previewing the UI.
+   4. To connect a real service:
+        • paste your API key   → "API key"
+        • paste the endpoint   → "API endpoint URL"
+      The app POSTs JSON:
+        { q, source, target, model }
+      with header  Authorization: Bearer <apiKey>
+      and reads the translation from the first of:
+        translatedText · translation · output · result · data.translatedText
+      (or the raw text body if the response is not JSON).
+   5. Everything is persisted in localStorage:
+        API key · endpoint · languages · model · voice toggle ·
+        dark mode · palette · translation history (max 50 items).
+   6. Shortcuts: Ctrl/⌘ + Enter translates · Esc closes menus/dialogs.
+
+   No build step, no dependencies, no tracking.
+   ===================================================================== */
+
 'use strict';
 
-// ─── الثوابت ───
-const APP_VERSION = '1.0.0';
-const STORAGE = {
-  theme: 'tj_theme',
-  settings: 'tj_settings',
-  model: 'tj_model',
-  modelsCache: 'tj_models_cache',
-  type: 'tj_type',
-  engine: 'tj_engine',
-  history: 'tj_history',
-  favorites: 'tj_favorites'
-};
-const MYMEMORY_API = 'https://api.mymemory.translated.net/get';
-const LANG_NAMES_EN = {
-  ar:'Arabic', en:'English', fr:'French', es:'Spanish', de:'German',
-  tr:'Turkish', it:'Italian', pt:'Portuguese', ru:'Russian', ja:'Japanese',
-  ko:'Korean', zh:'Chinese', hi:'Hindi', fa:'Persian', ur:'Urdu'
-};
-const LANG_SPEECH = {
-  ar:'ar-SA', en:'en-US', fr:'fr-FR', es:'es-ES', de:'de-DE', tr:'tr-TR',
-  it:'it-IT', pt:'pt-PT', ru:'ru-RU', ja:'ja-JP', ko:'ko-KR', zh:'zh-CN',
-  hi:'hi-IN', fa:'fa-IR', ur:'ur-PK'
-};
-const TRANSLATION_TYPES = [
-  { id:'normal', name:'ترجمة طبيعية', desc:'ترجمة سلسة تحافظ على المعنى والسياق', icon:'globe' },
-  { id:'literal', name:'ترجمة حرفية', desc:'دقيقة لفظياً وقريبة من بنية الأصل', icon:'text' },
-  { id:'formal', name:'ترجمة رسمية', desc:'لغة مهنية رسمية مناسبة للوثائق', icon:'briefcase' },
-  { id:'informal', name:'ترجمة غير رسمية', desc:'لغة ودية يومية قريبة من الحديث', icon:'chat' },
-  { id:'academic', name:'ترجمة أكاديمية', desc:'أسلوب علمي بمصطلحات متخصصة', icon:'book' },
-  { id:'professional', name:'ترجمة احترافية', desc:'جودة عالية بمصطلحات صناعية دقيقة', icon:'star' },
-  { id:'explain', name:'شرح معنى النص', desc:'يشرح المعنى بدلاً من الترجمة الحرفية', icon:'info' }
-];
-const TYPE_PROMPTS = {
-  normal: 'Translate naturally and fluently, preserving meaning, tone, and context.',
-  literal: 'Translate literally, staying as close as possible to the source structure and wording.',
-  formal: 'Translate using formal, professional, polite language suitable for official documents.',
-  informal: 'Translate using casual, friendly, everyday language.',
-  academic: 'Translate using scholarly terminology and formal academic style.',
-  professional: 'Translate with industry-appropriate terminology and high professional quality.',
-  explain: 'Explain the meaning of this text clearly and thoroughly rather than translating it word-for-word.'
+/* =====================================================================
+   1. CONSTANTS
+   ===================================================================== */
+
+const STORE = {
+  key:      'tt.apiKey',
+  endpoint: 'tt.endpoint',
+  source:   'tt.sourceLang',
+  target:   'tt.targetLang',
+  model:    'tt.model',
+  voice:    'tt.voice',
+  dark:     'tt.dark',
+  colors:   'tt.colors',
+  history:  'tt.history'
 };
 
-// ─── الحالة ───
-const state = {
-  engine: 'normal',
-  selectedModel: null,
-  selectedType: 'normal',
-  pendingModel: null,
-  pendingType: 'normal',
-  isListening: false,
-  isSpeaking: false,
-  recognition: null,
-  lastTranslation: null,
-  currentSection: 'history',
-  models: []
+const DEFAULT_COLORS = { primary: '#14b8a6', secondary: '#06b6d4', bg: '#f0fdfa' };
+const DARK_BG        = '#04201e';
+const LIGHT_BG       = '#f0fdfa';
+
+const LANG_NAMES = {
+  auto:'Auto-detect', en:'English', es:'Spanish', fr:'French', de:'German',
+  it:'Italian', pt:'Portuguese', ru:'Russian', ar:'Arabic', zh:'Chinese',
+  ja:'Japanese', ko:'Korean', hi:'Hindi', tr:'Turkish', nl:'Dutch',
+  pl:'Polish', sv:'Swedish', da:'Danish', fi:'Finnish', no:'Norwegian',
+  el:'Greek', he:'Hebrew', th:'Thai', vi:'Vietnamese', id:'Indonesian',
+  ms:'Malay', uk:'Ukrainian', cs:'Czech', sk:'Slovak', hu:'Hungarian',
+  ro:'Romanian', bg:'Bulgarian', hr:'Croatian', sr:'Serbian', sl:'Slovenian',
+  fa:'Persian', ur:'Urdu', bn:'Bengali', ta:'Tamil', te:'Telugu',
+  sw:'Swahili', fil:'Filipino'
 };
 
-// ─── مساعدات ───
-const $ = (id) => document.getElementById(id);
-const create = (tag, cls, html) => {
-  const el = document.createElement(tag);
-  if (cls) el.className = cls;
-  if (html !== undefined) el.innerHTML = html;
-  return el;
+const MODEL_LABELS = { professional: 'Professional', standard: 'Standard', ai: 'AI-powered' };
+
+/* BCP-47 tags for the Web Speech API */
+const SPEECH_LANG = {
+  en:'en-US', es:'es-ES', fr:'fr-FR', de:'de-DE', it:'it-IT', pt:'pt-PT',
+  ru:'ru-RU', ar:'ar-SA', zh:'zh-CN', ja:'ja-JP', ko:'ko-KR', hi:'hi-IN',
+  tr:'tr-TR', nl:'nl-NL', pl:'pl-PL', sv:'sv-SE', da:'da-DK', fi:'fi-FI',
+  no:'nb-NO', el:'el-GR', he:'he-IL', th:'th-TH', vi:'vi-VN', id:'id-ID',
+  ms:'ms-MY', uk:'uk-UA', cs:'cs-CZ', sk:'sk-SK', hu:'hu-HU', ro:'ro-RO',
+  bg:'bg-BG', hr:'hr-HR', sr:'sr-RS', sl:'sl-SI', fa:'fa-IR', ur:'ur-PK',
+  bn:'bn-BD', ta:'ta-IN', te:'te-IN', sw:'sw-KE', fil:'fil-PH'
 };
 
-// ─── Toast ───
-let toastTimer;
-function showToast(message, type = 'info') {
-  const toast = $('toast');
-  toast.textContent = message;
-  toast.className = 'toast show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
-}
+/* Tiny dictionary used only in demo mode (no endpoint configured). */
+const DEMO_DICT = {
+  es: { hello:'hola', hi:'hola', world:'mundo', good:'bueno', morning:'mañana',
+        night:'noche', thank:'gracias', thanks:'gracias', you:'tú', please:'por favor',
+        yes:'sí', no:'no', friend:'amigo', love:'amor', water:'agua', food:'comida',
+        house:'casa', book:'libro', translate:'traducir', translation:'traducción',
+        language:'idioma', welcome:'bienvenido', goodbye:'adiós', how:'cómo',
+        are:'estás', what:'qué', is:'es', this:'esto', name:'nombre', my:'mi',
+        your:'tu', the:'el', a:'un', and:'y', with:'con', for:'para', very:'muy',
+        i:'yo', am:'soy', we:'nosotros', they:'ellos', from:'de', to:'a',
+        in:'en', on:'en', of:'de', it:'eso', that:'eso', today:'hoy', tomorrow:'mañana' },
+  fr: { hello:'bonjour', hi:'salut', world:'monde', good:'bon', morning:'matin',
+        night:'nuit', thank:'merci', thanks:'merci', you:'vous', please:'s’il vous plaît',
+        yes:'oui', no:'non', friend:'ami', love:'amour', water:'eau', food:'nourriture',
+        house:'maison', book:'livre', translate:'traduire', translation:'traduction',
+        language:'langue', welcome:'bienvenue', goodbye:'au revoir', how:'comment',
+        are:'êtes', what:'quoi', is:'est', this:'ceci', name:'nom', my:'mon',
+        your:'votre', the:'le', a:'un', and:'et', with:'avec', for:'pour', very:'très',
+        i:'je', am:'suis', we:'nous', they:'ils', from:'de', to:'à', in:'dans',
+        on:'sur', of:'de', it:'il', that:'que', today:'aujourd’hui', tomorrow:'demain' },
+  de: { hello:'hallo', hi:'hallo', world:'Welt', good:'gut', morning:'Morgen',
+        night:'Nacht', thank:'danke', thanks:'danke', you:'du', please:'bitte',
+        yes:'ja', no:'nein', friend:'Freund', love:'Liebe', water:'Wasser',
+        food:'Essen', house:'Haus', book:'Buch', translate:'übersetzen',
+        translation:'Übersetzung', language:'Sprache', welcome:'willkommen',
+        goodbye:'auf Wiedersehen', how:'wie', are:'bist', what:'was', is:'ist',
+        this:'dies', name:'Name', my:'mein', your:'dein', the:'der', a:'ein',
+        and:'und', with:'mit', for:'für', very:'sehr', i:'ich', am:'bin',
+        we:'wir', they:'sie', from:'von', to:'zu', in:'in', on:'auf', of:'von',
+        it:'es', that:'das', today:'heute', tomorrow:'morgen' },
+  tr: { hello:'merhaba', hi:'selam', world:'dünya', good:'iyi', morning:'sabah',
+        night:'gece', thank:'teşekkür', thanks:'teşekkürler', you:'sen',
+        please:'lütfen', yes:'evet', no:'hayır', friend:'arkadaş', love:'aşk',
+        water:'su', food:'yemek', house:'ev', book:'kitap', translate:'çevir',
+        translation:'çeviri', language:'dil', welcome:'hoş geldiniz',
+        goodbye:'hoşça kal', how:'nasıl', are:'sın', what:'ne', is:'dir',
+        this:'bu', name:'isim', my:'benim', your:'senin', the:'', a:'bir',
+        and:'ve', with:'ile', for:'için', very:'çok', i:'ben', am:'im',
+        we:'biz', they:'onlar', from:'den', to:'e', in:'de', on:'da',
+        of:'in', it:'o', that:'şu', today:'bugün', tomorrow:'yarın' }
+};
 
-// ─── التخزين الآمن ───
-function safeGet(key, fallback) {
-  try {
-    const v = localStorage.getItem(key);
-    return v === null ? fallback : JSON.parse(v);
-  } catch { return fallback; }
-}
-function safeSet(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (e) {
-    showToast('تعذر الحفظ — مساحة التخزين ممتلئة', 'error');
-    return false;
+/* =====================================================================
+   2. TINY HELPERS
+   ===================================================================== */
+
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+/* Safe localStorage wrappers — private mode / quota can throw. */
+const store = {
+  get(key, fallback = null) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); }
+    catch (err) { console.warn('[storage] write failed', key, err); }
+  },
+  remove(key) {
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
   }
-}
-function safeRemove(key) {
-  try { localStorage.removeItem(key); } catch {}
+};
+
+const debounce = (fn, ms = 220) => {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+};
+
+/* ---------------- Colour maths (for accessible theming) ---------------- */
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
-// ═══════════════════════════════════════════════════════
-// 1) السمة
-// ═══════════════════════════════════════════════════════
-function initTheme() {
-  const saved = safeGet(STORAGE.theme, 'light');
-  applyTheme(saved);
-}
-function applyTheme(mode) {
-  const effective = mode === 'dark' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', effective);
-  $('themeToggle').innerHTML = effective === 'dark'
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-  safeSet(STORAGE.theme, mode);
-}
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
-  applyTheme(current === 'dark' ? 'light' : 'dark');
+function rgbToHex({ r, g, b }) {
+  const to = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return `#${to(r)}${to(g)}${to(b)}`;
 }
 
-// ═══════════════════════════════════════════════════════
-// 2) محدد المحرك
-// ═══════════════════════════════════════════════════════
-function setEngine(engine) {
-  state.engine = engine;
-  safeSet(STORAGE.engine, engine);
-  document.querySelectorAll('.engine-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.engine === engine);
+function mix(hexA, hexB, t) {
+  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  return rgbToHex({
+    r: a.r + (b.r - a.r) * t,
+    g: a.g + (b.g - a.g) * t,
+    b: a.b + (b.b - a.b) * t
   });
-  const aiOptions = $('aiOptions');
-  if (engine === 'ai') {
-    aiOptions.classList.remove('hidden');
-  } else {
-    aiOptions.classList.add('hidden');
-  }
 }
 
-// ═══════════════════════════════════════════════════════
-// 3) الإعدادات
-// ═══════════════════════════════════════════════════════
-function getSettings() {
-  return safeGet(STORAGE.settings, { apiKey: '', endpoint: '' });
-}
-function saveSettingsToStorage(settings) {
-  safeSet(STORAGE.settings, settings);
-}
-function normalizeEndpoint(endpoint) {
-  if (!endpoint) return '';
-  let url = endpoint.trim().replace(/\/+$/, '');
-  try {
-    const u = new URL(url);
-    if (u.pathname === '/' || u.pathname === '') {
-      url = u.origin + '/v1';
-    }
-  } catch {}
-  return url;
-}
-function updateSettingsStatus(type, text) {
-  const status = $('connectionStatus');
-  const textEl = $('statusText');
-  status.className = 'status-indicator ' + type;
-  textEl.textContent = text;
-}
-async function testConnection() {
-  const key = $('apiKeyInput').value.trim();
-  const endpoint = normalizeEndpoint($('endpointInput').value);
-  if (!key || !endpoint) {
-    updateSettingsStatus('error', 'أدخل المفتاح و Endpoint أولاً');
-    return;
-  }
-  updateSettingsStatus('loading', 'جارٍ اختبار الاتصال...');
-  try {
-    const res = await fetch(endpoint + '/models', {
-      headers: { 'Authorization': 'Bearer ' + key }
-    });
-    if (res.ok) {
-      updateSettingsStatus('success', '✅ الاتصال ناجح — المفتاح صحيح');
-      showToast('تم الاتصال بنجاح', 'success');
-    } else if (res.status === 401 || res.status === 403) {
-      updateSettingsStatus('error', '❌ المفتاح غير صحيح أو منتهي');
-    } else {
-      updateSettingsStatus('error', '❌ خطأ ' + res.status + ' — تحقق من الـ Endpoint');
-    }
-  } catch (err) {
-    updateSettingsStatus('error', '❌ فشل الاتصال — قد يكون CORS أو الشبكة');
-  }
-}
-function saveSettings() {
-  const key = $('apiKeyInput').value.trim();
-  const endpoint = normalizeEndpoint($('endpointInput').value);
-  if (!key || !endpoint) {
-    showToast('يرجى ملء الحقلين', 'error');
-    return;
-  }
-  saveSettingsToStorage({ apiKey: key, endpoint });
-  safeRemove(STORAGE.modelsCache);
-  showToast('تم حفظ الإعدادات', 'success');
-  closeModal('settingsModal');
-}
-function deleteKey() {
-  if (!confirm('هل أنت متأكد من حذف مفتاح API؟')) return;
-  saveSettingsToStorage({ apiKey: '', endpoint: '' });
-  $('apiKeyInput').value = '';
-  safeRemove(STORAGE.modelsCache);
-  updateSettingsStatus('', 'تم حذف المفتاح');
-  showToast('تم حذف المفتاح', 'success');
-}
-function openSettings() {
-  const s = getSettings();
-  $('apiKeyInput').value = s.apiKey || '';
-  $('endpointInput').value = s.endpoint || '';
-  updateSettingsStatus('', s.apiKey ? 'المفتاح محفوظ' : 'لم يتم الاختبار بعد');
-  openModal('settingsModal');
+function rgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// ═══════════════════════════════════════════════════════
-// 4) النوافذ المنبثقة
-// ═══════════════════════════════════════════════════════
-function openModal(id) {
-  const m = $(id);
-  if (!m) return;
-  m.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeModal(id) {
-  const m = $(id);
-  if (!m) return;
-  m.classList.remove('open');
-  document.body.style.overflow = '';
-  if (id === 'modelModal') state.pendingModel = null;
-  if (id === 'typeModal') state.pendingType = state.selectedType;
-}
-
-// ═══════════════════════════════════════════════════════
-// 5) النماذج
-// ═══════════════════════════════════════════════════════
-async function loadModels(forceRefresh = false) {
-  const settings = getSettings();
-  if (!settings.apiKey || !settings.endpoint) {
-    showToast('يرجى إعداد مفتاح API و Endpoint أولاً', 'error');
-    openSettings();
-    return [];
-  }
-  if (!forceRefresh) {
-    const cached = safeGet(STORAGE.modelsCache, null);
-    if (cached && cached.timestamp && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
-      return cached.models;
-    }
-  }
-  const endpoint = normalizeEndpoint(settings.endpoint);
-  try {
-    const res = await fetch(endpoint + '/models', {
-      headers: { 'Authorization': 'Bearer ' + settings.apiKey }
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status} ${errText.slice(0, 100)}`);
-    }
-    const data = await res.json();
-    const list = data.data || data.models || [];
-    const models = list.map(m => ({
-      id: m.id || m.name || String(m),
-      name: m.id || m.name || String(m)
-    })).filter(m => m.id);
-    safeSet(STORAGE.modelsCache, { models, timestamp: Date.now() });
-    return models;
-  } catch (e) {
-    showToast('فشل جلب النماذج: ' + e.message.slice(0, 80), 'error');
-    return [];
-  }
-}
-async function openModelModal() {
-  openModal('modelModal');
-  state.pendingModel = state.selectedModel;
-  const list = $('modelList');
-  list.innerHTML = '<div class="empty-state"><p>جارٍ التحميل...</p></div>';
-  $('confirmModelBtn').disabled = true;
-  const models = await loadModels(false);
-  renderModels(models);
-}
-function renderModels(models) {
-  state.models = models;
-  const list = $('modelList');
-  const query = ($('modelSearch').value || '').toLowerCase().trim();
-  const filtered = models.filter(m => !query || m.name.toLowerCase().includes(query));
-  if (filtered.length === 0) {
-    list.innerHTML = '<div class="empty-state"><p>' + (models.length === 0 ? 'لا توجد نماذج متاحة' : 'لا نتائج مطابقة') + '</p></div>';
-    return;
-  }
-  list.innerHTML = '';
-  filtered.forEach(m => {
-    const item = create('button', 'model-item' + (m.id === state.pendingModel ? ' selected' : ''), '');
-    item.type = 'button';
-    item.dataset.modelId = m.id;
-    item.innerHTML = `
-      <div class="model-check">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-      <div class="model-name" title="${escapeHtml(m.name)}">${escapeHtml(m.name)}</div>
-    `;
-    item.addEventListener('click', () => {
-      state.pendingModel = m.id;
-      list.querySelectorAll('.model-item').forEach(x => x.classList.remove('selected'));
-      item.classList.add('selected');
-      $('confirmModelBtn').disabled = false;
-    });
-    list.appendChild(item);
-  });
-  if (state.pendingModel) $('confirmModelBtn').disabled = false;
-}
-function confirmModel() {
-  if (!state.pendingModel) return;
-  state.selectedModel = state.pendingModel;
-  safeSet(STORAGE.model, state.selectedModel);
-  updateModelDisplay();
-  closeModal('modelModal');
-  showToast('تم اختيار النموذج', 'success');
-}
-function updateModelDisplay() {
-  const el = $('modelValue');
-  if (state.selectedModel) {
-    el.textContent = state.selectedModel;
-    el.classList.remove('empty');
-  } else {
-    el.textContent = 'لم يتم الاختيار';
-    el.classList.add('empty');
-  }
-}
-async function refreshModels() {
-  const btn = $('refreshModelsBtn');
-  btn.classList.add('loading');
-  btn.disabled = true;
-  const models = await loadModels(true);
-  btn.classList.remove('loading');
-  btn.disabled = false;
-  renderModels(models);
-  if (models.length) showToast('تم تحديث النماذج (' + models.length + ')', 'success');
-}
-
-// ═══════════════════════════════════════════════════════
-// 6) نوع الترجمة
-// ═══════════════════════════════════════════════════════
-function getIcon(name) {
-  const icons = {
-    globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
-    text: '<path d="M4 7V4h16v3"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/>',
-    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
-    chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
-    star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
-    info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
+/* WCAG relative luminance */
+function luminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const ch = c => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   };
-  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (icons[name] || icons.info) + '</svg>';
-}
-function renderTypeCards() {
-  const grid = $('typeGrid');
-  grid.innerHTML = '';
-  state.pendingType = state.selectedType;
-  TRANSLATION_TYPES.forEach(t => {
-    const card = create('button', 'type-card' + (t.id === state.pendingType ? ' selected' : ''), '');
-    card.type = 'button';
-    card.dataset.typeId = t.id;
-    card.innerHTML = `
-      ${getIcon(t.icon)}
-      <div class="type-info">
-        <span class="type-name">${t.name}</span>
-        <span class="type-desc">${t.desc}</span>
-      </div>
-      <div class="type-check">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-    `;
-    card.addEventListener('click', () => {
-      state.pendingType = t.id;
-      grid.querySelectorAll('.type-card').forEach(x => x.classList.remove('selected'));
-      card.classList.add('selected');
-    });
-    grid.appendChild(card);
-  });
-}
-function openTypeModal() {
-  renderTypeCards();
-  openModal('typeModal');
-}
-function confirmType() {
-  state.selectedType = state.pendingType;
-  safeSet(STORAGE.type, state.selectedType);
-  const type = TRANSLATION_TYPES.find(t => t.id === state.selectedType);
-  $('typeValue').textContent = type ? type.name : 'طبيعية';
-  closeModal('typeModal');
-  showToast('تم اختيار نوع الترجمة', 'success');
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
 }
 
-// ═══════════════════════════════════════════════════════
-// 7) الترجمة العادية (MyMemory)
-// ═══════════════════════════════════════════════════════
-function splitText(text, maxLen) {
-  if (text.length <= maxLen) return [text];
-  const chunks = [];
-  const paragraphs = text.split(/\n\s*\n/);
-  let current = '';
-  for (const para of paragraphs) {
-    if ((current + '\n\n' + para).length > maxLen && current) {
-      chunks.push(current.trim());
-      current = '';
-    }
-    if (para.length > maxLen) {
-      const sentences = para.match(/[^.!?؟]+[.!?؟]+|[^.!?؟]+$/g) || [para];
-      for (const s of sentences) {
-        if ((current + ' ' + s).length > maxLen && current) {
-          chunks.push(current.trim());
-          current = '';
-        }
-        current += (current ? ' ' : '') + s;
-      }
-    } else {
-      current += (current ? '\n\n' : '') + para;
-    }
-  }
-  if (current.trim()) chunks.push(current.trim());
-  return chunks;
-}
-async function translateChunk(text, src, tgt) {
-  const url = `${MYMEMORY_API}?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(src)}|${encodeURIComponent(tgt)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
-  if (data.responseStatus === 403 || data.responseStatus === 429) {
-    throw new Error('تجاوزت حد الخدمة المجانية — حاول لاحقاً');
-  }
-  const translated = data.responseData?.translatedText || '';
-  if (!translated) throw new Error('لا توجد ترجمة');
-  return translated;
-}
-async function translateNormal(text, src, tgt) {
-  if (text.length > 500) {
-    showToast('النص طويل — سيتم تقسيمه لأجزاء', 'info');
-  }
-  const chunks = splitText(text, 450);
-  const results = [];
-  for (const chunk of chunks) {
-    results.push(await translateChunk(chunk, src, tgt));
-  }
-  return results.join('\n\n');
+function contrast(hexA, hexB) {
+  const la = luminance(hexA), lb = luminance(hexB);
+  const [hi, lo] = la > lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
 }
 
-// ═══════════════════════════════════════════════════════
-// 8) الترجمة بالذكاء الاصطناعي
-// ═══════════════════════════════════════════════════════
-async function translateAI(text, src, tgt) {
-  const settings = getSettings();
-  if (!settings.apiKey || !settings.endpoint) {
-    showToast('يرجى إعداد مفتاح API و Endpoint أولاً', 'error');
-    openSettings();
-    throw new Error('missing-settings');
+/* Pick the readable foreground for a given background. */
+function bestOn(bg) {
+  const dark = '#042f2e';
+  const light = '#ffffff';
+  return contrast(bg, dark) >= contrast(bg, light) ? dark : light;
+}
+
+/* =====================================================================
+   3. APPLICATION STATE
+   ===================================================================== */
+
+const state = {
+  apiKey: '',
+  endpoint: '',
+  source: 'auto',
+  target: 'es',
+  model: 'professional',
+  voice: false,
+  dark: false,
+  colors: { ...DEFAULT_COLORS },
+  history: []
+};
+
+/* Imported file names for the current draft (kept in memory only). */
+let importedFiles = [];
+
+/* =====================================================================
+   4. DOM REFERENCES
+   ===================================================================== */
+
+const el = {
+  root: document.documentElement,
+
+  menuBtn: $('#menuBtn'),
+  menu: $('#menuDropdown'),
+  darkSwitch: $('#darkModeSwitch'),
+  menuColors: $('#menuColors'),
+  menuHistory: $('#menuHistory'),
+  menuClearHistory: $('#menuClearHistory'),
+
+  apiKey: $('#apiKey'),
+  toggleKeyBtn: $('#toggleKeyBtn'),
+  apiEndpoint: $('#apiEndpoint'),
+  endpointBadge: $('#endpointBadge'),
+
+  importBtn: $('#importBtn'),
+  fileInput: $('#fileInput'),
+  colorsBtn: $('#colorsBtn'),
+  clearHistoryBtn: $('#clearHistoryBtn'),
+  voiceSwitch: $('#voiceSwitch'),
+
+  sourceLang: $('#sourceLang'),
+  targetLang: $('#targetLang'),
+  swapBtn: $('#swapBtn'),
+  modelSelect: $('#modelSelect'),
+
+  inputText: $('#inputText'),
+  charCount: $('#charCount'),
+  fileChips: $('#fileChips'),
+  clearInputBtn: $('#clearInputBtn'),
+
+  outputText: $('#outputText'),
+  outputMeta: $('#outputMeta'),
+  outputInfo: $('#outputInfo'),
+  speakBtn: $('#speakBtn'),
+  copyBtn: $('#copyBtn'),
+
+  translateBtn: $('#translateBtn'),
+  spinner: $('#spinner'),
+  feedback: $('#feedback'),
+  statusPill: $('#statusPill'),
+
+  historyCard: $('#historyCard'),
+  historyList: $('#historyList'),
+  historyEmpty: $('#historyEmpty'),
+  historyHideBtn: $('#historyHideBtn'),
+
+  colorDialog: $('#colorDialog'),
+  colorPrimary: $('#colorPrimary'),
+  colorSecondary: $('#colorSecondary'),
+  colorBg: $('#colorBg'),
+  contrastReport: $('#contrastReport'),
+  resetColorsBtn: $('#resetColorsBtn'),
+
+  toastStack: $('#toastStack')
+};
+
+/* =====================================================================
+   5. THEME & COLOUR APPLICATION
+   ===================================================================== */
+
+/* Push the palette into CSS custom properties and derive contrast-safe
+   foregrounds. Runs on load, on palette change and on dark-mode toggle. */
+function applyColors(colors) {
+  const { primary, secondary, bg } = colors;
+  const dark = state.dark;
+
+  const text        = bestOn(bg);
+  const onPrimary   = bestOn(primary);
+  const onSecondary = bestOn(secondary);
+
+  /* Surface is a soft step away from the background. */
+  const surface = dark ? mix(bg, '#ffffff', 0.07) : mix(bg, '#ffffff', 0.62);
+
+  const muted        = rgba(text, 0.66);
+  const border       = rgba(primary, dark ? 0.42 : 0.30);
+  const borderStrong = rgba(primary, 0.58);
+  const ring         = rgba(primary, 0.45);
+
+  const s = el.root.style;
+  s.setProperty('--primary', primary);
+  s.setProperty('--secondary', secondary);
+  s.setProperty('--bg', bg);
+  s.setProperty('--surface', surface);
+  s.setProperty('--text', text);
+  s.setProperty('--muted', muted);
+  s.setProperty('--border', border);
+  s.setProperty('--border-strong', borderStrong);
+  s.setProperty('--on-primary', onPrimary);
+  s.setProperty('--on-secondary', onSecondary);
+  s.setProperty('--ring', ring);
+
+  /* Keep the browser chrome (mobile address bar) in sync. */
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', primary);
+}
+
+function applyTheme() {
+  el.root.dataset.theme = state.dark ? 'dark' : 'light';
+  el.darkSwitch.checked = state.dark;
+  applyColors(state.colors);
+}
+
+/* =====================================================================
+   6. STATUS / FEEDBACK / TOASTS
+   ===================================================================== */
+
+function setStatus(kind, label) {
+  el.statusPill.dataset.state = kind;
+  $('.status-text', el.statusPill).textContent = label;
+}
+
+function setFeedback(message, kind = '') {
+  el.feedback.textContent = message;
+  el.feedback.className = `feedback ${kind}`.trim();
+}
+
+function toast(message, kind = 'info', timeout = 3400) {
+  const node = document.createElement('div');
+  node.className = `toast ${kind}`;
+  node.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+  node.textContent = message;
+  el.toastStack.appendChild(node);
+
+  setTimeout(() => {
+    node.classList.add('leaving');
+    node.addEventListener('animationend', () => node.remove(), { once: true });
+  }, timeout);
+}
+
+function setLoading(isLoading) {
+  el.translateBtn.disabled = isLoading;
+  el.spinner.hidden = !isLoading;
+  $('.btn-label', el.translateBtn).textContent = isLoading ? 'Translating…' : 'Translate';
+  if (isLoading) setStatus('working', 'Working');
+}
+
+/* =====================================================================
+   7. PERSISTENCE
+   ===================================================================== */
+
+function loadSettings() {
+  state.apiKey   = store.get(STORE.key, '') ?? '';
+  state.endpoint = store.get(STORE.endpoint, '') ?? '';
+  state.source   = store.get(STORE.source, 'auto');
+  state.target   = store.get(STORE.target, 'es');
+  state.model    = store.get(STORE.model, 'professional');
+  state.voice    = store.get(STORE.voice, false) === true;
+  state.dark     = store.get(STORE.dark, false) === true;
+
+  const savedColors = store.get(STORE.colors, null);
+  state.colors = (savedColors && savedColors.primary && savedColors.secondary && savedColors.bg)
+    ? { ...savedColors }
+    : { ...DEFAULT_COLORS };
+
+  const hist = store.get(STORE.history, []);
+  state.history = Array.isArray(hist) ? hist.slice(0, 50) : [];
+
+  /* Reflect into the form controls */
+  el.apiKey.value = state.apiKey;
+  el.apiEndpoint.value = state.endpoint;
+  el.sourceLang.value = state.source;
+  el.targetLang.value = state.target;
+  el.modelSelect.value = state.model;
+  el.voiceSwitch.checked = state.voice;
+  updateEndpointBadge();
+}
+
+function saveSettings() {
+  store.set(STORE.key, state.apiKey);
+  store.set(STORE.endpoint, state.endpoint);
+  store.set(STORE.source, state.source);
+  store.set(STORE.target, state.target);
+  store.set(STORE.model, state.model);
+  store.set(STORE.voice, state.voice);
+  store.set(STORE.dark, state.dark);
+  store.set(STORE.colors, state.colors);
+}
+
+const saveHistory = () => store.set(STORE.history, state.history.slice(0, 50));
+
+function updateEndpointBadge() {
+  const live = Boolean(state.endpoint.trim() && state.apiKey.trim());
+  el.endpointBadge.textContent = live ? 'Live API' : 'Demo mode';
+  el.endpointBadge.classList.toggle('live', live);
+}
+
+/* =====================================================================
+   8. MENU (three-dot dropdown)
+   ===================================================================== */
+
+function openMenu() {
+  el.menu.hidden = false;
+  el.menuBtn.setAttribute('aria-expanded', 'true');
+}
+function closeMenu() {
+  el.menu.hidden = true;
+  el.menuBtn.setAttribute('aria-expanded', 'false');
+}
+
+el.menuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  el.menu.hidden ? openMenu() : closeMenu();
+});
+
+/* Close on outside click */
+document.addEventListener('click', (e) => {
+  if (el.menu.hidden) return;
+  if (el.menu.contains(e.target) || el.menuBtn.contains(e.target)) return;
+  closeMenu();
+});
+
+/* Close on Escape */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el.menu.hidden) {
+    closeMenu();
+    el.menuBtn.focus();
   }
-  if (!state.selectedModel) {
-    showToast('يرجى اختيار نموذج أولاً', 'error');
-    openModelModal();
-    throw new Error('missing-model');
+});
+
+/* Menu items */
+el.menuColors.addEventListener('click', () => { closeMenu(); openColorDialog(); });
+el.menuHistory.addEventListener('click', () => { closeMenu(); showHistory(true); });
+el.menuClearHistory.addEventListener('click', () => { closeMenu(); clearHistory(); });
+
+/* Dark-mode switch (in the dropdown) */
+el.darkSwitch.addEventListener('change', () => {
+  state.dark = el.darkSwitch.checked;
+
+  /* Swap only the default backgrounds so custom palettes survive. */
+  const bg = state.colors.bg.toLowerCase();
+  if (state.dark && bg === LIGHT_BG) state.colors.bg = DARK_BG;
+  if (!state.dark && bg === DARK_BG) state.colors.bg = LIGHT_BG;
+
+  applyTheme();
+  saveSettings();
+  toast(state.dark ? 'Dark mode on' : 'Dark mode off', 'info', 1800);
+});
+
+/* =====================================================================
+   9. API CONFIGURATION INPUTS
+   ===================================================================== */
+
+el.apiKey.addEventListener('input', debounce(() => {
+  state.apiKey = el.apiKey.value.trim();
+  updateEndpointBadge();
+  saveSettings();
+}, 250));
+
+el.apiEndpoint.addEventListener('input', debounce(() => {
+  state.endpoint = el.apiEndpoint.value.trim();
+  updateEndpointBadge();
+  saveSettings();
+}, 250));
+
+/* Show / hide the key */
+el.toggleKeyBtn.addEventListener('click', () => {
+  const visible = el.apiKey.type === 'text';
+  el.apiKey.type = visible ? 'password' : 'text';
+  el.toggleKeyBtn.setAttribute('aria-pressed', String(!visible));
+  el.toggleKeyBtn.setAttribute('aria-label', visible ? 'Show API key' : 'Hide API key');
+});
+
+/* =====================================================================
+   10. LANGUAGE / MODEL SELECTION
+   ===================================================================== */
+
+el.sourceLang.addEventListener('change', () => {
+  state.source = el.sourceLang.value;
+  saveSettings();
+});
+
+el.targetLang.addEventListener('change', () => {
+  state.target = el.targetLang.value;
+  saveSettings();
+  updateOutputInfo();
+});
+
+el.modelSelect.addEventListener('change', () => {
+  state.model = el.modelSelect.value;
+  saveSettings();
+});
+
+/* Swap languages. If source is "auto", fall back to English. */
+el.swapBtn.addEventListener('click', () => {
+  const from = state.source === 'auto' ? 'en' : state.source;
+  const to = state.target;
+  state.source = to;
+  state.target = from;
+  el.sourceLang.value = state.source;
+  el.targetLang.value = state.target;
+  saveSettings();
+  updateOutputInfo();
+  toast('Languages swapped', 'info', 1600);
+});
+
+/* =====================================================================
+   11. VOICE TRANSLATION
+   ===================================================================== */
+
+el.voiceSwitch.addEventListener('change', () => {
+  state.voice = el.voiceSwitch.checked;
+  saveSettings();
+  if (state.voice) toast('Voice translation enabled — results will be read aloud.', 'info');
+});
+
+function speak(text, lang) {
+  if (!text) return;
+  if (!('speechSynthesis' in window)) {
+    toast('Speech synthesis is not supported in this browser.', 'error');
+    return;
   }
-  const endpoint = normalizeEndpoint(settings.endpoint);
-  const typePrompt = TYPE_PROMPTS[state.selectedType] || TYPE_PROMPTS.normal;
-  const srcName = LANG_NAMES_EN[src] || src;
-  const tgtName = LANG_NAMES_EN[tgt] || tgt;
-  const systemPrompt = `You are a professional translator. ${typePrompt} Respond only with the ${state.selectedType === 'explain' ? 'explanation' : 'translation'} in ${tgtName}. Do not add explanations, notes, or quotes.`;
-  const userPrompt = `Source language: ${srcName}\nTarget language: ${tgtName}\n\nText:\n${text}`;
   try {
-    const res = await fetch(endpoint + '/chat/completions', {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = SPEECH_LANG[lang] || lang || 'en-US';
+    utter.rate = 1;
+    utter.pitch = 1;
+    window.speechSynthesis.speak(utter);
+  } catch (err) {
+    console.warn('[speech]', err);
+    toast('Could not play the audio.', 'error');
+  }
+}
+
+el.speakBtn.addEventListener('click', () => {
+  const text = el.outputText.value.trim();
+  if (!text) return toast('Nothing to read yet.', 'error');
+  speak(text, state.target);
+});
+
+/* =====================================================================
+   12. FILE IMPORT
+   ===================================================================== */
+
+const MAX_FILE_BYTES = 1.5 * 1024 * 1024; // 1.5 MB per file
+
+el.importBtn.addEventListener('click', () => el.fileInput.click());
+
+el.fileInput.addEventListener('change', async () => {
+  const files = Array.from(el.fileInput.files || []);
+  if (!files.length) return;
+
+  const parts = [];
+  const accepted = [];
+
+  for (const file of files) {
+    try {
+      if (file.size > MAX_FILE_BYTES) {
+        toast(`"${file.name}" is too large (max 1.5 MB).`, 'error');
+        continue;
+      }
+      const text = await file.text();
+
+      /* Cheap binary sniffing: NUL bytes in the first 1000 chars. */
+      if (text.slice(0, 1000).includes('\u0000')) {
+        toast(`"${file.name}" looks like a binary file and was skipped.`, 'error');
+        continue;
+      }
+
+      const clean = text.replace(/\r\n?/g, '\n').trim();
+      if (!clean) {
+        toast(`"${file.name}" is empty and was skipped.`, 'info');
+        continue;
+      }
+
+      parts.push(`--- ${file.name} ---\n${clean}`);
+      accepted.push({ name: file.name, size: file.size });
+    } catch (err) {
+      console.error(err);
+      toast(`Could not read "${file.name}".`, 'error');
+    }
+  }
+
+  el.fileInput.value = ''; // allow re-selecting the same file
+
+  if (!parts.length) return;
+
+  const existing = el.inputText.value.trim();
+  el.inputText.value = existing ? `${existing}\n\n${parts.join('\n\n')}` : parts.join('\n\n');
+
+  importedFiles = importedFiles.concat(accepted);
+  renderFileChips();
+  updateCharCount();
+  setFeedback(`Imported ${accepted.length} file(s).`, 'success');
+  toast(`Imported ${accepted.length} file(s).`, 'success');
+});
+
+function renderFileChips() {
+  el.fileChips.textContent = importedFiles.length
+    ? importedFiles.map(f => `📄 ${f.name}`).join('  ·  ')
+    : '';
+}
+
+/* =====================================================================
+   13. INPUT PANE
+   ===================================================================== */
+
+function updateCharCount() {
+  const n = el.inputText.value.length;
+  el.charCount.textContent = `${n.toLocaleString()} character${n === 1 ? '' : 's'}`;
+}
+
+function updateOutputInfo() {
+  const from = LANG_NAMES[state.source] || state.source;
+  const to = LANG_NAMES[state.target] || state.target;
+  el.outputMeta.textContent = `${from} → ${to} · ${MODEL_LABELS[state.model] || state.model}`;
+}
+
+el.inputText.addEventListener('input', updateCharCount);
+
+el.clearInputBtn.addEventListener('click', () => {
+  el.inputText.value = '';
+  importedFiles = [];
+  renderFileChips();
+  updateCharCount();
+  el.inputText.focus();
+});
+
+/* =====================================================================
+   14. TRANSLATION
+   ===================================================================== */
+
+/**
+ * Call the configured endpoint.
+ * The contract is intentionally forgiving: many providers differ slightly,
+ * so we try the most common response shapes before giving up.
+ */
+async function callApi({ endpoint, apiKey, text, source, target, model }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+
+  let res;
+  try {
+    res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + settings.apiKey
+        'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: state.selectedModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3
-      })
+      body: JSON.stringify({ q: text, source, target, model }),
+      signal: controller.signal
     });
-    if (!res.ok) {
-      if (res.status === 401) throw new Error('مفتاح API غير صحيح (401)');
-      if (res.status === 404) throw new Error('النموذج غير متاح (404)');
-      if (res.status === 429) throw new Error('تجاوزت حد الطلبات (429)');
-      const errText = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status} ${errText.slice(0, 80)}`);
-    }
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error('لم يتم استلام رد من النموذج');
-    return content.trim();
   } catch (err) {
-    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-      throw new Error('فشل الاتصال — قد يكون CORS أو الشبكة');
-    }
-    throw err;
+    if (err.name === 'AbortError') throw new Error('Request timed out after 30 seconds.');
+    throw new Error('Network error — check the endpoint URL and your connection.');
+  } finally {
+    clearTimeout(timer);
   }
+
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = await res.text();
+      if (body) detail = ` — ${body.slice(0, 180)}`;
+    } catch { /* ignore */ }
+    throw new Error(`API responded with HTTP ${res.status}${detail}`);
+  }
+
+  const raw = await res.text();
+  if (!raw) throw new Error('The API returned an empty response.');
+
+  let data;
+  try { data = JSON.parse(raw); }
+  catch { return raw.trim(); } // plain-text API
+
+  const candidate =
+    data.translatedText ??
+    data.translation ??
+    data.output ??
+    data.result ??
+    data.data?.translatedText ??
+    data.data?.translation ??
+    data.choices?.[0]?.message?.content;
+
+  if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+  throw new Error('Could not find a translation in the API response.');
 }
 
-// ═══════════════════════════════════════════════════════
-// 9) تنفيذ الترجمة الرئيسي
-// ═══════════════════════════════════════════════════════
-async function translate() {
-  const text = $('sourceText').value.trim();
+/** Demo mode: word-by-word dictionary substitution. */
+function demoTranslate(text, target) {
+  const dict = DEMO_DICT[target];
+  if (!dict) {
+    return `[${LANG_NAMES[target] || target}] ${text}`;
+  }
+  return text.replace(/\b[\p{L}\p{M}']+\b/gu, (word) => {
+    const key = word.toLowerCase();
+    if (!(key in dict)) return word;
+    const out = dict[key];
+    if (!out) return word;
+    return /^\p{Lu}/u.test(word)
+      ? out.charAt(0).toUpperCase() + out.slice(1)
+      : out;
+  });
+}
+
+async function doTranslate() {
+  const text = el.inputText.value.trim();
+
   if (!text) {
-    showToast('أدخل نصاً للترجمة', 'error');
+    setFeedback('Please enter or import some text first.', 'error');
+    setStatus('error', 'Empty input');
+    el.inputText.focus();
     return;
   }
-  const src = $('sourceLang').value;
-  const tgt = $('targetLang').value;
-  if (src === tgt) {
-    showToast('اختر لغتين مختلفتين', 'error');
+
+  if (state.source !== 'auto' && state.source === state.target) {
+    setFeedback('Source and target languages are the same.', 'error');
+    setStatus('error', 'Same language');
     return;
   }
-  const btn = $('translateBtn');
-  btn.disabled = true;
-  btn.classList.add('loading');
-  const result = $('resultText');
-  result.className = 'result-text';
-  result.textContent = 'جارٍ الترجمة...';
+
+  setLoading(true);
+  setFeedback('');
+  el.outputText.value = '';
+  el.outputInfo.textContent = '';
+
+  const started = performance.now();
 
   try {
     let translated;
-    if (state.engine === 'ai') {
-      translated = await translateAI(text, src, tgt);
+    const useLive = Boolean(state.endpoint.trim() && state.apiKey.trim());
+
+    if (useLive) {
+      translated = await callApi({
+        endpoint: state.endpoint,
+        apiKey: state.apiKey,
+        text,
+        source: state.source,
+        target: state.target,
+        model: state.model
+      });
+      setFeedback('Translated via your API.', 'success');
     } else {
-      translated = await translateNormal(text, src, tgt);
+      await sleep(420); // keep the spinner visible long enough to feel real
+      translated = demoTranslate(text, state.target);
+      setFeedback('Demo mode — add an endpoint and key for live translations.', 'success');
     }
-    result.textContent = translated;
-    result.className = 'result-text';
-    state.lastTranslation = {
-      source: text,
-      target: translated,
-      sourceLang: src,
-      targetLang: tgt,
-      engine: state.engine,
-      model: state.engine === 'ai' ? state.selectedModel : null,
-      type: state.engine === 'ai' ? state.selectedType : null,
-      timestamp: Date.now()
-    };
-    addToHistory(state.lastTranslation);
-    updateFavoriteBtn();
-    showToast('تمت الترجمة بنجاح', 'success');
+
+    el.outputText.value = translated;
+
+    const ms = Math.round(performance.now() - started);
+    el.outputInfo.textContent = `${translated.length.toLocaleString()} chars · ${ms} ms`;
+    updateOutputInfo();
+
+    addHistory({
+      ts: Date.now(),
+      source: state.source,
+      target: state.target,
+      model: state.model,
+      input: text,
+      output: translated
+    });
+
+    if (state.voice) speak(translated, state.target);
+
+    setStatus('success', 'Done');
+    toast('Translation ready.', 'success', 2200);
   } catch (err) {
-    result.className = 'result-text error';
-    result.textContent = '⚠️ ' + (err.message || 'فشلت الترجمة');
-    showToast(err.message || 'فشلت الترجمة', 'error');
+    console.error('[translate]', err);
+    const message = err?.message || 'Translation failed.';
+    setFeedback(message, 'error');
+    setStatus('error', 'Failed');
+    toast(message, 'error', 5200);
   } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
+    setLoading(false);
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// 10) الأدوات (نسخ، نطق، مشاركة، مفضلة)
-// ═══════════════════════════════════════════════════════
-async function copyResult() {
-  const text = $('resultText').textContent;
-  if (!text || text === 'الترجمة ستظهر هنا' || text.startsWith('⚠️')) {
-    showToast('لا يوجد نص لنسخه', 'error');
-    return;
+el.translateBtn.addEventListener('click', doTranslate);
+
+/* Ctrl / ⌘ + Enter anywhere in the translator card */
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    if (!el.translateBtn.disabled) doTranslate();
   }
+});
+
+/* =====================================================================
+   15. OUTPUT ACTIONS
+   ===================================================================== */
+
+el.copyBtn.addEventListener('click', async () => {
+  const text = el.outputText.value;
+  if (!text) return toast('Nothing to copy yet.', 'error');
   try {
-    await navigator.clipboard.writeText(text);
-    showToast('تم النسخ', 'success');
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      el.outputText.select();
+      document.execCommand('copy');
+    }
+    toast('Copied to clipboard.', 'success', 1800);
   } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-    showToast('تم النسخ', 'success');
+    toast('Copy failed — please select the text manually.', 'error');
   }
-}
-function speakResult() {
-  const text = $('resultText').textContent;
-  if (!text || text === 'الترجمة ستظهر هنا' || text.startsWith('⚠️')) {
-    showToast('لا يوجد نص للنطق', 'error');
-    return;
-  }
-  if (!('speechSynthesis' in window)) {
-    showToast('النطق غير مدعوم', 'error');
-    return;
-  }
-  const btn = $('speakBtn');
-  if (window.speechSynthesis.speaking) {
-    window.speechSynthesis.cancel();
-    btn.classList.remove('active');
-    return;
-  }
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = LANG_SPEECH[$('targetLang').value] || 'en-US';
-  utterance.rate = 0.9;
-  utterance.onend = () => btn.classList.remove('active');
-  utterance.onerror = () => btn.classList.remove('active');
-  btn.classList.add('active');
-  window.speechSynthesis.speak(utterance);
-  showToast('جارٍ النطق...', 'info');
-}
-async function shareResult() {
-  const text = $('resultText').textContent;
-  if (!text || text === 'الترجمة ستظهر هنا' || text.startsWith('⚠️')) {
-    showToast('لا يوجد نص للمشاركة', 'error');
-    return;
-  }
-  if (navigator.share) {
-    try {
-      await navigator.share({ text, title: 'ترجمان' });
-    } catch (err) {
-      if (err.name !== 'AbortError') showToast('تعذرت المشاركة', 'error');
-    }
-  } else {
-    copyResult();
-  }
-}
-function toggleFavorite() {
-  if (!state.lastTranslation) {
-    showToast('لا توجد ترجمة لحفظها', 'error');
-    return;
-  }
-  const favorites = safeGet(STORAGE.favorites, []);
-  const id = state.lastTranslation.timestamp;
-  const existing = favorites.findIndex(f => f.timestamp === id);
-  if (existing >= 0) {
-    favorites.splice(existing, 1);
-    safeSet(STORAGE.favorites, favorites);
-    showToast('أُزيلت من المفضلة', 'info');
-  } else {
-    favorites.unshift(state.lastTranslation);
-    if (favorites.length > 100) favorites.length = 100;
-    safeSet(STORAGE.favorites, favorites);
-    showToast('أُضيفت للمفضلة', 'success');
-  }
-  updateFavoriteBtn();
-  renderFavorites();
-}
-function updateFavoriteBtn() {
-  const btn = $('favoriteBtn');
-  if (!state.lastTranslation) {
-    btn.classList.remove('active');
-    return;
-  }
-  const favorites = safeGet(STORAGE.favorites, []);
-  const isFav = favorites.some(f => f.timestamp === state.lastTranslation.timestamp);
-  btn.classList.toggle('active', isFav);
-}
+});
 
-// ═══════════════════════════════════════════════════════
-// 11) السجل والمفضلة
-// ═══════════════════════════════════════════════════════
-function addToHistory(item) {
-  const history = safeGet(STORAGE.history, []);
-  history.unshift(item);
-  if (history.length > 50) history.length = 50;
-  safeSet(STORAGE.history, history);
+/* =====================================================================
+   16. HISTORY
+   ===================================================================== */
+
+function addHistory(entry) {
+  state.history.unshift({ id: `${entry.ts}-${Math.random().toString(36).slice(2, 7)}`, ...entry });
+  state.history = state.history.slice(0, 50);
+  saveHistory();
   renderHistory();
 }
+
 function renderHistory() {
-  const history = safeGet(STORAGE.history, []);
-  const container = $('historySection');
-  if (history.length === 0) {
-    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><p>لا توجد ترجمات سابقة بعد</p></div>';
+  el.historyList.innerHTML = '';
+
+  if (!state.history.length) {
+    el.historyEmpty.hidden = false;
     return;
   }
-  container.innerHTML = '';
-  history.forEach(item => {
-    container.appendChild(buildHistoryItem(item, false));
+  el.historyEmpty.hidden = true;
+
+  const fragment = document.createDocumentFragment();
+
+  state.history.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.className = 'history-item';
+    li.dataset.index = String(index);
+
+    const meta = document.createElement('div');
+    meta.className = 'history-meta';
+
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = MODEL_LABELS[item.model] || item.model;
+
+    const langs = document.createElement('span');
+    langs.textContent = `${LANG_NAMES[item.source] || item.source} → ${LANG_NAMES[item.target] || item.target}`;
+
+    const time = document.createElement('time');
+    time.dateTime = new Date(item.ts).toISOString();
+    time.textContent = new Date(item.ts).toLocaleString();
+
+    meta.append(badge, langs, time);
+
+    const src = document.createElement('p');
+    src.className = 'history-src';
+    src.textContent = truncate(item.input, 150);
+
+    const out = document.createElement('p');
+    out.className = 'history-out';
+    out.textContent = truncate(item.output, 150);
+
+    const actions = document.createElement('div');
+    actions.className = 'history-actions';
+
+    actions.append(
+      historyButton('Reuse', 'reuse', index),
+      historyButton('🔊', 'speak', index, 'Read aloud'),
+      historyButton('Copy', 'copy', index)
+    );
+
+    li.append(meta, src, out, actions);
+    fragment.appendChild(li);
   });
+
+  el.historyList.appendChild(fragment);
 }
-function renderFavorites() {
-  const favorites = safeGet(STORAGE.favorites, []);
-  const container = $('favoritesSection');
-  if (favorites.length === 0) {
-    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><p>لا توجد عناصر في المفضلة</p></div>';
-    return;
-  }
-  container.innerHTML = '';
-  favorites.forEach(item => {
-    container.appendChild(buildHistoryItem(item, true));
-  });
+
+function historyButton(label, action, index, ariaLabel) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-ghost btn-sm';
+  btn.dataset.action = action;
+  btn.dataset.index = String(index);
+  btn.textContent = label;
+  if (ariaLabel) btn.setAttribute('aria-label', ariaLabel);
+  return btn;
 }
-function buildHistoryItem(item, isFavorite) {
-  const el = create('div', 'history-item');
-  const srcLang = $('sourceLang').querySelector('option[value="' + item.sourceLang + '"]')?.textContent || item.sourceLang;
-  const tgtLang = $('targetLang').querySelector('option[value="' + item.targetLang + '"]')?.textContent || item.targetLang;
-  const time = new Date(item.timestamp).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-  el.innerHTML = `
-    <div class="history-item-header">
-      <span class="history-langs">${srcLang} ← ${tgtLang}${item.engine === 'ai' ? ' • AI' : ''}</span>
-      <span class="history-time">${time}</span>
-    </div>
-    <div class="history-source">${escapeHtml(item.source)}</div>
-    <div class="history-target">${escapeHtml(item.target)}</div>
-    <div class="history-actions">
-      <button class="tool-btn" data-action="reuse">استخدام</button>
-      <button class="tool-btn" data-action="copy">نسخ</button>
-      <button class="tool-btn" data-action="${isFavorite ? 'unfav' : 'fav'}">${isFavorite ? 'إزالة' : 'حفظ'}</button>
-      <button class="tool-btn" data-action="delete">حذف</button>
-    </div>
-  `;
-  el.querySelectorAll('.tool-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const action = btn.dataset.action;
-      if (action === 'reuse') {
-        $('sourceText').value = item.source;
-        $('sourceLang').value = item.sourceLang;
-        $('targetLang').value = item.targetLang;
-        updateCharCount();
-        state.lastTranslation = item;
-        $('resultText').className = 'result-text';
-        $('resultText').textContent = item.target;
-        updateFavoriteBtn();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        showToast('تم تحميل الترجمة', 'success');
-      } else if (action === 'copy') {
-        try {
-          await navigator.clipboard.writeText(item.target);
-          showToast('تم النسخ', 'success');
-        } catch { showToast('تعذر النسخ', 'error'); }
-      } else if (action === 'fav') {
-        const favs = safeGet(STORAGE.favorites, []);
-        if (!favs.some(f => f.timestamp === item.timestamp)) {
-          favs.unshift(item);
-          safeSet(STORAGE.favorites, favs);
-          showToast('أُضيفت للمفضلة', 'success');
-          renderFavorites();
-          updateFavoriteBtn();
-        }
-      } else if (action === 'unfav') {
-        const favs = safeGet(STORAGE.favorites, []);
-        const idx = favs.findIndex(f => f.timestamp === item.timestamp);
-        if (idx >= 0) {
-          favs.splice(idx, 1);
-          safeSet(STORAGE.favorites, favs);
-          showToast('أُزيلت من المفضلة', 'info');
-          renderFavorites();
-          updateFavoriteBtn();
-        }
-      } else if (action === 'delete') {
-        if (!confirm('حذف هذا العنصر؟')) return;
-        const key = isFavorite ? STORAGE.favorites : STORAGE.history;
-        const list = safeGet(key, []);
-        const idx = list.findIndex(f => f.timestamp === item.timestamp);
-        if (idx >= 0) {
-          list.splice(idx, 1);
-          safeSet(key, list);
-          isFavorite ? renderFavorites() : renderHistory();
-          showToast('تم الحذف', 'info');
-        }
+
+function truncate(str, n) {
+  const clean = String(str).replace(/\s+/g, ' ').trim();
+  return clean.length > n ? `${clean.slice(0, n - 1)}…` : clean;
+}
+
+/* Event delegation for history actions */
+el.historyList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+
+  const index = Number(btn.dataset.index);
+  const item = state.history[index];
+  if (!item) return;
+
+  switch (btn.dataset.action) {
+    case 'reuse':
+      el.inputText.value = item.input;
+      el.outputText.value = item.output;
+      state.source = item.source;
+      state.target = item.target;
+      state.model = item.model;
+      el.sourceLang.value = item.source;
+      el.targetLang.value = item.target;
+      el.modelSelect.value = item.model;
+      saveSettings();
+      updateCharCount();
+      updateOutputInfo();
+      el.outputInfo.textContent = '';
+      toast('Loaded into the translator.', 'info', 1800);
+      el.inputText.focus();
+      break;
+
+    case 'speak':
+      speak(item.output, item.target);
+      break;
+
+    case 'copy':
+      try {
+        await navigator.clipboard.writeText(item.output);
+        toast('Copied to clipboard.', 'success', 1800);
+      } catch {
+        toast('Copy failed.', 'error');
       }
-    });
-  });
-  return el;
-}
-function switchSection(section) {
-  state.currentSection = section;
-  document.querySelectorAll('.section-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.section === section);
-  });
-  $('historySection').classList.toggle('hidden', section !== 'history');
-  $('favoritesSection').classList.toggle('hidden', section !== 'favorites');
-}
+      break;
+  }
+});
 
-// ═══════════════════════════════════════════════════════
-// 12) الأدوات المساعدة
-// ═══════════════════════════════════════════════════════
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = String(text);
-  return div.innerHTML;
-}
-function updateCharCount() {
-  const count = $('sourceText').value.length;
-  $('charCount').textContent = count;
-}
-
-// ═══════════════════════════════════════════════════════
-// 13) الصوت (Speech Recognition)
-// ═══════════════════════════════════════════════════════
-function startVoice(autoTranslate = false) {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    showToast('الإدخال الصوتي غير مدعوم في هذا المتصفح', 'error');
+function clearHistory() {
+  if (!state.history.length) {
+    toast('History is already empty.', 'info', 1800);
     return;
   }
-  if (state.isListening) {
-    try { state.recognition?.stop(); } catch {}
-    return;
-  }
-  const rec = new SR();
-  state.recognition = rec;
-  rec.lang = LANG_SPEECH[$('sourceLang').value] || 'ar-SA';
-  rec.continuous = false;
-  rec.interimResults = true;
+  const ok = window.confirm('Delete all saved translations? This cannot be undone.');
+  if (!ok) return;
 
-  const btn = autoTranslate ? $('voiceTranslateBtn') : $('micBtn');
-  btn.classList.add('listening');
-
-  rec.onstart = () => {
-    state.isListening = true;
-    showToast('🎤 تحدث الآن...', 'info');
-  };
-  rec.onresult = (e) => {
-    let transcript = '';
-    for (let i = 0; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
-    }
-    $('sourceText').value = transcript;
-    updateCharCount();
-  };
-  rec.onend = () => {
-    state.isListening = false;
-    btn.classList.remove('listening');
-    if (autoTranslate && $('sourceText').value.trim()) {
-      translate();
-    }
-  };
-  rec.onerror = (e) => {
-    state.isListening = false;
-    btn.classList.remove('listening');
-    if (e.error !== 'aborted' && e.error !== 'no-speech') {
-      showToast('خطأ صوتي: ' + e.error, 'error');
-    }
-  };
-  rec.start();
-}
-
-// ═══════════════════════════════════════════════════════
-// 14) استيراد الملفات
-// ═══════════════════════════════════════════════════════
-async function handleFileImport(file) {
-  if (!file) return;
-  const name = file.name.toLowerCase();
-  const textExts = ['.txt', '.md', '.csv', '.srt', '.json', '.log', '.rtf'];
-  const isText = textExts.some(ext => name.endsWith(ext)) || file.type.startsWith('text/');
-  if (!isText) {
-    showToast('صيغة غير مدعومة — يدعم التطبيق النصوص فقط (.txt, .md, .csv, .srt, .json)', 'error');
-    return;
-  }
-  try {
-    const text = await file.text();
-    $('sourceText').value = text;
-    updateCharCount();
-    showToast('تم استيراد الملف (' + text.length + ' حرف)', 'success');
-  } catch (e) {
-    showToast('تعذر قراءة الملف', 'error');
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// 15) ربط الأحداث
-// ═══════════════════════════════════════════════════════
-function bindEvents() {
-  $('themeToggle').addEventListener('click', toggleTheme);
-  $('settingsBtn').addEventListener('click', openSettings);
-
-  document.querySelectorAll('.engine-btn').forEach(btn => {
-    btn.addEventListener('click', () => setEngine(btn.dataset.engine));
-  });
-
-  $('modelBtn').addEventListener('click', openModelModal);
-  $('typeBtn').addEventListener('click', openTypeModal);
-  $('confirmModelBtn').addEventListener('click', confirmModel);
-  $('confirmTypeBtn').addEventListener('click', confirmType);
-  $('refreshModelsBtn').addEventListener('click', refreshModels);
-  $('modelSearch').addEventListener('input', () => renderModels(state.models));
-
-  document.querySelectorAll('[data-close-modal]').forEach(btn => {
-    btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
-  });
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal(modal.id);
-    });
-  });
-
-  $('toggleKeyBtn').addEventListener('click', () => {
-    const inp = $('apiKeyInput');
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-  });
-  $('testConnectionBtn').addEventListener('click', testConnection);
-  $('saveSettingsBtn').addEventListener('click', saveSettings);
-  $('deleteKeyBtn').addEventListener('click', deleteKey);
-
-  $('swapBtn').addEventListener('click', () => {
-    const s = $('sourceLang').value;
-    $('sourceLang').value = $('targetLang').value;
-    $('targetLang').value = s;
-    const result = $('resultText');
-    if (state.lastTranslation) {
-      const t = $('sourceText').value;
-      $('sourceText').value = result.textContent;
-      result.textContent = t;
-      updateCharCount();
-    }
-  });
-
-  $('sourceText').addEventListener('input', updateCharCount);
-  $('pasteBtn').addEventListener('click', async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (!text) { showToast('الحافظة فارغة', 'info'); return; }
-      $('sourceText').value = text;
-      updateCharCount();
-      showToast('تم اللصق', 'success');
-    } catch {
-      showToast('تعذر اللصق — فعّل إذن الحافظة', 'error');
-    }
-  });
-  $('clearBtn').addEventListener('click', () => {
-    if (!$('sourceText').value) return;
-    $('sourceText').value = '';
-    updateCharCount();
-    $('resultText').className = 'result-text empty';
-    $('resultText').textContent = 'الترجمة ستظهر هنا';
-    state.lastTranslation = null;
-    updateFavoriteBtn();
-  });
-  $('importBtn').addEventListener('click', () => $('fileInput').click());
-  $('fileInput').addEventListener('change', (e) => {
-    const f = e.target.files[0];
-    if (f) handleFileImport(f);
-    e.target.value = '';
-  });
-  $('micBtn').addEventListener('click', () => startVoice(false));
-
-  $('translateBtn').addEventListener('click', translate);
-  $('voiceTranslateBtn').addEventListener('click', () => startVoice(true));
-  $('retranslateBtn').addEventListener('click', translate);
-
-  $('copyBtn').addEventListener('click', copyResult);
-  $('speakBtn').addEventListener('click', speakResult);
-  $('shareBtn').addEventListener('click', shareResult);
-  $('favoriteBtn').addEventListener('click', toggleFavorite);
-
-  document.querySelectorAll('.section-tab').forEach(tab => {
-    tab.addEventListener('click', () => switchSection(tab.dataset.section));
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-// 16) التهيئة
-// ═══════════════════════════════════════════════════════
-function init() {
-  initTheme();
-
-  const savedEngine = safeGet(STORAGE.engine, 'normal');
-  setEngine(savedEngine);
-
-  const savedModel = safeGet(STORAGE.model, null);
-  if (savedModel) {
-    state.selectedModel = savedModel;
-    updateModelDisplay();
-  }
-  const savedType = safeGet(STORAGE.type, 'normal');
-  state.selectedType = savedType;
-  const type = TRANSLATION_TYPES.find(t => t.id === savedType);
-  if (type) $('typeValue').textContent = type.name;
-
-  bindEvents();
+  state.history = [];
+  store.remove(STORE.history);
   renderHistory();
-  renderFavorites();
-  updateCharCount();
-
-  console.log('%c🌐 ترجمان v' + APP_VERSION + ' جاهز', 'color:#14B8A6;font-weight:bold;font-size:14px');
+  toast('History cleared.', 'success', 2000);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+el.clearHistoryBtn.addEventListener('click', clearHistory);
+
+function showHistory(show) {
+  el.historyCard.hidden = !show;
+  if (show) {
+    renderHistory();
+    el.historyCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+el.historyHideBtn.addEventListener('click', () => {
+  el.historyCard.hidden = true;
+});
+
+/* =====================================================================
+   17. SITE COLORS DIALOG
+   ===================================================================== */
+
+function openColorDialog() {
+  el.colorPrimary.value = state.colors.primary;
+  el.colorSecondary.value = state.colors.secondary;
+  el.colorBg.value = state.colors.bg;
+  updateContrastReport();
+
+  if (typeof el.colorDialog.showModal === 'function') {
+    el.colorDialog.showModal();
+  } else {
+    el.colorDialog.setAttribute('open', ''); // very old browser fallback
+  }
+}
+
+el.colorsBtn.addEventListener('click', openColorDialog);
+
+/* Live preview while the user drags a colour picker */
+function onColorInput() {
+  state.colors = {
+    primary: el.colorPrimary.value,
+    secondary: el.colorSecondary.value,
+    bg: el.colorBg.value
+  };
+  applyColors(state.colors);
+  updateContrastReport();
+}
+
+el.colorPrimary.addEventListener('input', onColorInput);
+el.colorSecondary.addEventListener('input', onColorInput);
+el.colorBg.addEventListener('input', onColorInput);
+
+/* Persist when the dialog closes (Done, Esc or ✕) */
+el.colorDialog.addEventListener('close', () => {
+  saveSettings();
+  applyColors(state.colors);
+});
+
+el.resetColorsBtn.addEventListener('click', () => {
+  state.colors = { ...DEFAULT_COLORS };
+  /* If dark mode is active, restore the dark background instead. */
+  if (state.dark) state.colors.bg = DARK_BG;
+
+  el.colorPrimary.value = state.colors.primary;
+  el.colorSecondary.value = state.colors.secondary;
+  el.colorBg.value = state.colors.bg;
+
+  applyColors(state.colors);
+  updateContrastReport();
+  saveSettings();
+  toast('Palette reset to defaults.', 'info', 1800);
+});
+
+/* Contrast readout inside the dialog */
+function updateContrastReport() {
+  const rows = [
+    ['Button text on primary', contrast(state.colors.primary, bestOn(state.colors.primary))],
+    ['Body text on background', contrast(state.colors.bg, bestOn(state.colors.bg))],
+    ['Accents on secondary', contrast(state.colors.secondary, bestOn(state.colors.secondary))]
+  ];
+
+  el.contrastReport.innerHTML = '';
+  rows.forEach(([label, ratio]) => {
+    const row = document.createElement('div');
+    row.className = 'contrast-row';
+
+    const name = document.createElement('span');
+    name.textContent = label;
+
+    const value = document.createElement('span');
+    const ok = ratio >= 4.5;
+    value.className = ok ? 'pass' : 'fail';
+    value.innerHTML = `<span class="ratio">${ratio.toFixed(2)}:1</span> ${ok ? '✓ AA' : '✗ low'}`;
+
+    row.append(name, value);
+    el.contrastReport.appendChild(row);
+  });
+}
+
+/* =====================================================================
+   18. BOOTSTRAP
+   ===================================================================== */
+
+function init() {
+  loadSettings();
+  applyTheme();
+  updateOutputInfo();
+  updateCharCount();
+  renderHistory();
+  setStatus('idle', 'Ready');
+
+  /* Small, friendly first-run hint. */
+  if (!state.apiKey && !state.endpoint) {
+    setTimeout(() => {
+      toast('Tip: add your API key and endpoint — or try demo mode right away.', 'info', 5200);
+    }, 900);
+  }
+}
+
+init();
