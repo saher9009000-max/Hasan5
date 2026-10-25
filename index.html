@@ -3,166 +3,145 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#14b8a6" />
-  <meta name="description" content="مترجم توركواز — ترجمة احترافية بثلاثة أوضاع: احترافي، قياسي، ذكاء اصطناعي." />
-  <title>مترجم توركواز</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌐</text></svg>" />
+  <title>المترجم الذكي</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- ==================== Header ==================== -->
-  <header class="app-header">
-    <div class="brand">
-      <div class="brand-logo" aria-hidden="true">🌐</div>
-      <div>
-        <h1>مترجم توركواز</h1>
-        <p class="brand-sub">ترجمة احترافية بثلاثة أوضاع</p>
+  <div class="app">
+    <!-- ===== Header ===== -->
+    <header class="header">
+      <div class="brand">
+        <span class="logo">🌐</span>
+        <h1>المترجم الذكي</h1>
       </div>
-    </div>
 
-    <div class="menu-wrap">
-      <button class="icon-btn" id="menuToggle" aria-label="إعدادات إضافية" aria-expanded="false" aria-controls="dropdownMenu">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/>
-          <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/>
-          <circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>
-        </svg>
-      </button>
-
-      <div class="dropdown" id="dropdownMenu" hidden role="menu">
-        <button class="dropdown-item" id="colorsBtn" role="menuitem">
-          <span class="di-icon">🎨</span>
-          <span>ألوان الموقع</span>
-        </button>
-
-        <button class="dropdown-item" id="clearHistoryBtn" role="menuitem">
-          <span class="di-icon">🗑️</span>
-          <span>مسح السجل</span>
-        </button>
-
-        <label class="dropdown-item" role="menuitemcheckbox">
-          <span class="di-icon">🌙</span>
-          <span>الوضع الداكن</span>
-          <input type="checkbox" id="darkModeToggle" />
-          <span class="switch" aria-hidden="true"></span>
-        </label>
+      <div class="header-actions">
+        <select id="modelSelect" class="model-select" disabled>
+          <option value="">— لا يوجد نموذج —</option>
+        </select>
+        <button id="refreshModelsBtn" class="btn-icon" title="تحديث قائمة النماذج">⟳</button>
+        <button id="openSettingsBtn" class="btn-icon" title="الإعدادات">⚙️</button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- ==================== Main ==================== -->
-  <main>
-    <!-- API Settings -->
-    <section class="card">
-      <div class="card-head">
-        <h2>إعدادات الاتصال</h2>
-        <span class="badge">API</span>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="apiKey">مفتاح API</label>
-          <input type="password" id="apiKey" placeholder="أدخل مفتاح API..." autocomplete="off" spellcheck="false" />
-        </div>
-        <div class="field">
-          <label for="endpoint">عنوان URL لنقطة النهاية</label>
-          <input type="url" id="endpoint" placeholder="https://api.example.com/translate" autocomplete="off" spellcheck="false" />
-        </div>
-      </div>
-      <p class="hint">اترك الحقلين فارغين لاستخدام خدمة العرض التجريبي المجانية (MyMemory).</p>
-    </section>
-
-    <!-- Options -->
-    <section class="card">
-      <div class="lang-grid">
-        <div class="field">
-          <label for="sourceLang">اللغة المصدر</label>
-          <select id="sourceLang"></select>
-        </div>
-
-        <button class="swap-btn" id="swapLangs" title="تبديل اللغات" aria-label="تبديل اللغات">⇄</button>
-
-        <div class="field">
-          <label for="targetLang">اللغة الهدف</label>
-          <select id="targetLang"></select>
-        </div>
-
-        <div class="field">
-          <label for="model">نموذج الترجمة</label>
-          <select id="model">
-            <option value="professional">🏆 احترافي</option>
-            <option value="standard">⚡ قياسي</option>
-            <option value="ai">🤖 مدعوم بالذكاء الاصطناعي</option>
+    <!-- ===== Main ===== -->
+    <main class="main">
+      <!-- Source panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">النص الأصلي</span>
+          <select id="sourceLang" class="lang-select">
+            <option value="auto">كشف تلقائي</option>
+            <option value="English">الإنجليزية</option>
+            <option value="Arabic" selected>العربية</option>
+            <option value="French">الفرنسية</option>
+            <option value="Spanish">الإسبانية</option>
+            <option value="German">الألمانية</option>
+            <option value="Turkish">التركية</option>
+            <option value="Russian">الروسية</option>
+            <option value="Chinese">الصينية</option>
+            <option value="Japanese">اليابانية</option>
+            <option value="Korean">الكورية</option>
+            <option value="Italian">الإيطالية</option>
+            <option value="Portuguese">البرتغالية</option>
+            <option value="Hindi">الهندية</option>
+            <option value="Urdu">الأردية</option>
+            <option value="Persian">الفارسية</option>
           </select>
         </div>
-      </div>
-
-      <div class="row-end">
-        <button class="btn ghost" id="importBtn">
-          <span aria-hidden="true">📁</span> استيراد ملفات
-        </button>
-        <input type="file" id="fileInput" accept=".txt,.md,.csv,.json,.srt" multiple hidden />
-      </div>
-    </section>
-
-    <!-- Translator -->
-    <section class="translator-grid">
-      <div class="card">
-        <div class="card-head">
-          <label for="inputText">النص الأصلي</label>
-          <span class="count" id="inputCount">0 حرف</span>
+        <textarea id="sourceText" placeholder="اكتب أو الصق النص الذي تريد ترجمته هنا..."></textarea>
+        <div class="panel-footer">
+          <span id="charCount" class="counter">0 حرف</span>
         </div>
-        <textarea id="inputText" placeholder="الصق النص الذي تريد ترجمته هنا..." spellcheck="false"></textarea>
+      </section>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button id="translateBtn" class="btn-primary">
+          <span>ترجم</span>
+          <span class="arrow">←</span>
+        </button>
+        <button id="swapBtn" class="btn-icon" title="تبديل اللغات">⇄</button>
+        <button id="copyBtn" class="btn-icon" title="نسخ الترجمة">📋</button>
+        <button id="clearBtn" class="btn-icon" title="مسح الكل">🗑️</button>
       </div>
 
-      <div class="card">
-        <div class="card-head">
-          <label for="outputText">الترجمة</label>
-          <button class="mini-btn" id="copyBtn" title="نسخ الترجمة" aria-label="نسخ الترجمة">📋</button>
+      <!-- Target panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">الترجمة</span>
+          <select id="targetLang" class="lang-select">
+            <option value="English" selected>الإنجليزية</option>
+            <option value="Arabic">العربية</option>
+            <option value="French">الفرنسية</option>
+            <option value="Spanish">الإسبانية</option>
+            <option value="German">الألمانية</option>
+            <option value="Turkish">التركية</option>
+            <option value="Russian">الروسية</option>
+            <option value="Chinese">الصينية</option>
+            <option value="Japanese">اليابانية</option>
+            <option value="Korean">الكورية</option>
+            <option value="Italian">الإيطالية</option>
+            <option value="Portuguese">البرتغالية</option>
+            <option value="Hindi">الهندية</option>
+            <option value="Urdu">الأردية</option>
+            <option value="Persian">الفارسية</option>
+          </select>
         </div>
         <textarea id="outputText" readonly placeholder="ستظهر الترجمة هنا..."></textarea>
+        <div class="panel-footer">
+          <span id="statusMsg" class="status"></span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== Settings Modal ===== -->
+  <div id="settingsModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>إعدادات الاتصال</h2>
+        <button id="closeSettingsBtn" class="btn-icon" title="إغلاق">✕</button>
       </div>
-    </section>
 
-    <!-- Actions -->
-    <div class="actions-row">
-      <button class="btn primary big" id="translateBtn">
-        <span class="btn-text">ترجمة</span>
-        <span class="spinner" hidden aria-hidden="true"></span>
-      </button>
+      <div class="modal-body">
+        <div class="field">
+          <label for="endpointInput">API Endpoint URL</label>
+          <input
+            type="text"
+            id="endpointInput"
+            placeholder="https://api.groq.com/openai/v1"
+            dir="ltr"
+            autocomplete="off"
+          />
+          <small>
+            أمثلة: <code>https://api.openai.com/v1</code> — 
+            <code>https://api.groq.com/openai/v1</code> — 
+            <code>https://openrouter.ai/api/v1</code>
+          </small>
+        </div>
 
-      <label class="switch-row" for="voiceToggle">
-        <span aria-hidden="true">🔊</span>
-        <span>ترجمة صوتية</span>
-        <input type="checkbox" id="voiceToggle" />
-        <span class="switch" aria-hidden="true"></span>
-      </label>
+        <div class="field">
+          <label for="apiKeyInput">API Key</label>
+          <input
+            type="password"
+            id="apiKeyInput"
+            placeholder="sk-..."
+            dir="ltr"
+            autocomplete="off"
+          />
+          <small>يتم تخزين المفتاح محلياً في متصفحك فقط (LocalStorage).</small>
+        </div>
+
+        <div class="modal-actions">
+          <button id="saveSettingsBtn" class="btn-primary">حفظ وتحميل النماذج</button>
+          <button id="clearSettingsBtn" class="btn-secondary">مسح البيانات</button>
+        </div>
+
+        <div id="settingsStatus" class="status"></div>
+      </div>
     </div>
-
-    <!-- Colors panel -->
-    <section class="card" id="colorsPanel" hidden>
-      <div class="card-head">
-        <h2>ألوان الموقع</h2>
-        <button class="mini-btn" id="closeColors" title="إغلاق" aria-label="إغلاق">✕</button>
-      </div>
-      <div class="colors-grid">
-        <div class="color-field">
-          <label for="primaryColor">اللون الأساسي</label>
-          <input type="color" id="primaryColor" value="#14b8a6" />
-        </div>
-        <div class="color-field">
-          <label for="secondaryColor">اللون الثانوي</label>
-          <input type="color" id="secondaryColor" value="#0d9488" />
-        </div>
-        <div class="color-field">
-          <label for="bgColor">الخلفية</label>
-          <input type="color" id="bgColor" value="#f0fdfa" />
-        </div>
-      </div>
-      <button class="btn ghost" id="resetColors">استعادة الألوان الافتراضية</button>
-    </section>
-  </main>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
 
   <script src="app.js"></script>
 </body>
