@@ -1,634 +1,404 @@
-'use strict';
+/* =========================================================
+   المترجم الذكي — Client-Side فقط
+   - لا مفاتيح أو نماذج ثابتة
+   - جلب النماذج تلقائياً من /models
+   - طلبات متوافقة مع OpenAI / Groq (/chat/completions)
+   ========================================================= */
 
-/* ============================================================
-   Constants
-============================================================ */
-const STORAGE_KEY = 'tq-translator-state-v1';
-const HISTORY_KEY = 'tq-translator-history-v1';
-const DEMO_CHUNK_SIZE = 450;
+const STORAGE_KEY = "smart_translator_settings_v1";
 
-const LANGUAGES = [
-  { code: 'auto', name: 'كشف تلقائي', speech: '' },
-  { code: 'ar', name: 'العربية',    speech: 'ar-SA' },
-  { code: 'en', name: 'الإنجليزية', speech: 'en-US' },
-  { code: 'fr', name: 'الفرنسية',   speech: 'fr-FR' },
-  { code: 'es', name: 'الإسبانية',  speech: 'es-ES' },
-  { code: 'de', name: 'الألمانية',  speech: 'de-DE' },
-  { code: 'tr', name: 'التركية',    speech: 'tr-TR' },
-  { code: 'ru', name: 'الروسية',    speech: 'ru-RU' },
-  { code: 'zh', name: 'الصينية',    speech: 'zh-CN' },
-  { code: 'ja', name: 'اليابانية',  speech: 'ja-JP' },
-  { code: 'it', name: 'الإيطالية',  speech: 'it-IT' },
-  { code: 'pt', name: 'البرتغالية', speech: 'pt-PT' },
-  { code: 'hi', name: 'الهندية',    speech: 'hi-IN' },
-  { code: 'ko', name: 'الكورية',    speech: 'ko-KR' },
-  { code: 'nl', name: 'الهولندية',  speech: 'nl-NL' },
-  { code: 'pl', name: 'البولندية',  speech: 'pl-PL' },
-  { code: 'sv', name: 'السويدية',   speech: 'sv-SE' },
-  { code: 'fa', name: 'الفارسية',   speech: 'fa-IR' },
-  { code: 'ur', name: 'الأردية',    speech: 'ur-PK' }
-];
-
-const DEFAULT_STATE = {
-  apiKey: '',
-  endpoint: '',
-  sourceLang: 'ar',
-  targetLang: 'en',
-  model: 'standard',
-  voiceEnabled: false,
-  darkMode: false,
-  colors: {
-    primary: '#14b8a6',
-    secondary: '#0d9488',
-    bg: '#f0fdfa'
-  }
+const state = {
+  endpoint: "",
+  apiKey: "",
+  model: "",
+  models: [],
+  loading: false,
 };
 
-/* ============================================================
-   State & DOM
-============================================================ */
-let state = clone(DEFAULT_STATE);
-
+/* ---------- DOM ---------- */
 const $ = (id) => document.getElementById(id);
+
 const els = {
-  menuToggle: $('menuToggle'),
-  dropdownMenu: $('dropdownMenu'),
-  colorsBtn: $('colorsBtn'),
-  clearHistoryBtn: $('clearHistoryBtn'),
-  darkModeToggle: $('darkModeToggle'),
-  apiKey: $('apiKey'),
-  endpoint: $('endpoint'),
-  sourceLang: $('sourceLang'),
-  targetLang: $('targetLang'),
-  model: $('model'),
-  swapLangs: $('swapLangs'),
-  importBtn: $('importBtn'),
-  fileInput: $('fileInput'),
-  inputText: $('inputText'),
-  outputText: $('outputText'),
-  inputCount: $('inputCount'),
-  copyBtn: $('copyBtn'),
-  translateBtn: $('translateBtn'),
-  voiceToggle: $('voiceToggle'),
-  colorsPanel: $('colorsPanel'),
-  closeColors: $('closeColors'),
-  primaryColor: $('primaryColor'),
-  secondaryColor: $('secondaryColor'),
-  bgColor: $('bgColor'),
-  resetColors: $('resetColors'),
-  toast: $('toast')
+  // header
+  modelSelect: $("modelSelect"),
+  refreshModelsBtn: $("refreshModelsBtn"),
+  openSettingsBtn: $("openSettingsBtn"),
+
+  // main
+  sourceLang: $("sourceLang"),
+  targetLang: $("targetLang"),
+  sourceText: $("sourceText"),
+  outputText: $("outputText"),
+  charCount: $("charCount"),
+  statusMsg: $("statusMsg"),
+  translateBtn: $("translateBtn"),
+  swapBtn: $("swapBtn"),
+  copyBtn: $("copyBtn"),
+  clearBtn: $("clearBtn"),
+
+  // settings modal
+  settingsModal: $("settingsModal"),
+  closeSettingsBtn: $("closeSettingsBtn"),
+  endpointInput: $("endpointInput"),
+  apiKeyInput: $("apiKeyInput"),
+  saveSettingsBtn: $("saveSettingsBtn"),
+  clearSettingsBtn: $("clearSettingsBtn"),
+  settingsStatus: $("settingsStatus"),
 };
 
-/* ============================================================
-   Utilities
-============================================================ */
-function clone(obj) {
-  if (typeof structuredClone === 'function') return structuredClone(obj);
-  return JSON.parse(JSON.stringify(obj));
+/* ---------- Helpers ---------- */
+
+function normalizeBase(url) {
+  return (url || "").trim().replace(/\/+$/, "");
 }
 
-function deepMerge(target, source) {
-  for (const key of Object.keys(source || {})) {
-    const val = source[key];
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      target[key] = deepMerge(target[key] || {}, val);
-    } else {
-      target[key] = val;
-    }
-  }
-  return target;
+function setStatus(el, message, type = "") {
+  el.textContent = message || "";
+  el.classList.remove("error", "success");
+  if (type) el.classList.add(type);
 }
 
-function hexToRgb(hex) {
-  if (!hex) return null;
-  const m = String(hex).replace('#', '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (!m) return null;
-  let h = m[1];
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  return [
-    parseInt(h.slice(0, 2), 16),
-    parseInt(h.slice(2, 4), 16),
-    parseInt(h.slice(4, 6), 16)
-  ];
+function setLoading(loading) {
+  state.loading = loading;
+  els.translateBtn.disabled = loading;
+  els.translateBtn.querySelector("span").textContent = loading ? "جاري..." : "ترجم";
 }
 
-function relativeLuminance(hex) {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return 1;
-  const lin = (c) => {
-    c /= 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  };
-  const [r, g, b] = rgb;
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-}
+/* ---------- LocalStorage ---------- */
 
-function getContrastText(hex) {
-  return relativeLuminance(hex) > 0.45 ? '#0f172a' : '#f8fafc';
-}
-
-function darken(hex, amount) {
-  const rgb = hexToRgb(hex) || [15, 23, 42];
-  return `rgb(${Math.round(rgb[0] * (1 - amount))}, ${Math.round(rgb[1] * (1 - amount))}, ${Math.round(rgb[2] * (1 - amount))})`;
-}
-
-function lighten(hex, amount) {
-  const rgb = hexToRgb(hex) || [15, 23, 42];
-  return `rgb(${Math.round(rgb[0] + (255 - rgb[0]) * amount)}, ${Math.round(rgb[1] + (255 - rgb[1]) * amount)}, ${Math.round(rgb[2] + (255 - rgb[2]) * amount)})`;
-}
-
-function decodeHtml(str) {
-  const el = document.createElement('textarea');
-  el.innerHTML = str;
-  return el.value;
-}
-
-function chunkText(text, maxLen) {
-  if (text.length <= maxLen) return [text];
-  const chunks = [];
-  const parts = text.split(/(?<=[.!?؟।\n])\s+/);
-  let current = '';
-
-  for (const part of parts) {
-    if ((current + ' ' + part).trim().length > maxLen) {
-      if (current.trim()) chunks.push(current.trim());
-      current = part;
-      while (current.length > maxLen) {
-        let cut = current.lastIndexOf(' ', maxLen);
-        if (cut === -1) cut = maxLen;
-        chunks.push(current.slice(0, cut).trim());
-        current = current.slice(cut).trim();
-      }
-    } else {
-      current = (current + ' ' + part).trim();
-    }
-  }
-  if (current.trim()) chunks.push(current.trim());
-  return chunks;
-}
-
-/* ============================================================
-   State persistence
-============================================================ */
-function loadState() {
+function loadSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) state = deepMerge(clone(DEFAULT_STATE), JSON.parse(raw));
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    state.endpoint = normalizeBase(data.endpoint || "");
+    state.apiKey = data.apiKey || "";
+    state.model = data.model || "";
+
+    els.endpointInput.value = state.endpoint;
+    els.apiKeyInput.value = state.apiKey;
   } catch (err) {
-    console.warn('Failed to load state', err);
+    console.warn("تعذر قراءة الإعدادات المحفوظة:", err);
   }
 }
 
-function saveState() {
+function saveSettings() {
+  const endpoint = normalizeBase(els.endpointInput.value);
+  const apiKey = els.apiKeyInput.value.trim();
+
+  if (!endpoint || !apiKey) {
+    setStatus(els.settingsStatus, "الرجاء إدخال الرابط والمفتاح معاً.", "error");
+    return false;
+  }
+
+  if (!/^https?:\/\//i.test(endpoint)) {
+    setStatus(els.settingsStatus, "الرابط يجب أن يبدأ بـ http:// أو https://", "error");
+    return false;
+  }
+
+  state.endpoint = endpoint;
+  state.apiKey = apiKey;
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ endpoint, apiKey, model: state.model })
+  );
+
+  setStatus(els.settingsStatus, "✓ تم الحفظ بنجاح.", "success");
+  return true;
+}
+
+function persistModel(modelId) {
+  state.model = modelId;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    data.model = modelId;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (_) {}
+}
+
+/* ---------- Settings Modal ---------- */
+
+function openSettings() {
+  els.endpointInput.value = state.endpoint;
+  els.apiKeyInput.value = state.apiKey;
+  setStatus(els.settingsStatus, "");
+  els.settingsModal.classList.remove("hidden");
+  els.settingsModal.setAttribute("aria-hidden", "false");
+  setTimeout(() => els.endpointInput.focus(), 50);
+}
+
+function closeSettings() {
+  els.settingsModal.classList.add("hidden");
+  els.settingsModal.setAttribute("aria-hidden", "true");
+}
+
+/* ---------- Dynamic Models Fetching ---------- */
+
+function renderModelSelect(models) {
+  els.modelSelect.innerHTML = "";
+
+  if (!models.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "— لا توجد نماذج —";
+    els.modelSelect.appendChild(opt);
+    els.modelSelect.disabled = true;
+    return;
+  }
+
+  models.forEach((id) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = id;
+    els.modelSelect.appendChild(opt);
+  });
+
+  if (state.model && models.includes(state.model)) {
+    els.modelSelect.value = state.model;
+  } else {
+    state.model = models[0];
+    els.modelSelect.value = state.model;
+    persistModel(state.model);
+  }
+
+  els.modelSelect.disabled = false;
+}
+
+async function fetchModels() {
+  if (!state.endpoint || !state.apiKey) {
+    setStatus(els.settingsStatus, "أدخل الرابط والمفتاح أولاً ثم احفظ.", "error");
+    return;
+  }
+
+  els.refreshModelsBtn.disabled = true;
+  setStatus(els.settingsStatus, "جاري تحميل النماذج...");
+
+  try {
+    const res = await fetch(`${state.endpoint}/models`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${state.apiKey}`,
+      },
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`فشل تحميل النماذج (${res.status}). ${txt.slice(0, 150)}`);
+    }
+
+    const data = await res.json();
+    const list = Array.isArray(data?.data)
+      ? data.data.map((m) => m.id).filter(Boolean)
+      : [];
+
+    if (!list.length) throw new Error("لم يتم العثور على أي نموذج متاح.");
+
+    state.models = list.sort((a, b) => a.localeCompare(b));
+    renderModelSelect(state.models);
+
+    setStatus(els.settingsStatus, `✓ تم تحميل ${list.length} نموذج.`, "success");
   } catch (err) {
-    console.warn('Failed to save state', err);
+    console.error(err);
+    setStatus(els.settingsStatus, err.message || "خطأ في الاتصال.", "error");
+  } finally {
+    els.refreshModelsBtn.disabled = false;
   }
 }
 
-/* ============================================================
-   Theme / Colors
-============================================================ */
-function applyColors() {
-  const root = document.documentElement;
-  const c = state.colors;
+/* ---------- Translate ---------- */
 
-  root.style.setProperty('--primary', c.primary);
-  root.style.setProperty('--secondary', c.secondary);
-  root.style.setProperty('--bg', c.bg);
-
-  // Auto-contrast for light mode based on chosen background
-  const bgIsDark = getContrastText(c.bg) === '#f8fafc';
-  root.style.setProperty('--text', bgIsDark ? '#f8fafc' : '#0f172a');
-  root.style.setProperty('--card-bg', bgIsDark ? '#1e293b' : '#ffffff');
-  root.style.setProperty('--border', bgIsDark ? '#334155' : '#e2e8f0');
-
-  // Derive dark-mode palette from user background
-  const darkBg = darken(c.bg, 0.9);
-  root.style.setProperty('--bg-dark', darkBg);
-  root.style.setProperty('--card-bg-dark', lighten(darkBg, 0.07));
-  root.style.setProperty('--border-dark', lighten(darkBg, 0.17));
-  root.style.setProperty('--text-dark', '#e2e8f0');
-
-  // Sync pickers
-  els.primaryColor.value = c.primary;
-  els.secondaryColor.value = c.secondary;
-  els.bgColor.value = c.bg;
+function buildSystemPrompt() {
+  return "You are a professional translator. Translate the user's text accurately. Return ONLY the translated text without explanations, quotes, or notes.";
 }
 
-function syncUI() {
-  els.apiKey.value = state.apiKey;
-  els.endpoint.value = state.endpoint;
-  els.sourceLang.value = state.sourceLang;
-  els.targetLang.value = state.targetLang;
-  els.model.value = state.model;
-  els.voiceToggle.checked = state.voiceEnabled;
-  els.darkModeToggle.checked = state.darkMode;
-  document.body.classList.toggle('dark', state.darkMode);
-  applyColors();
+function buildUserPrompt(text, sourceLang, targetLang) {
+  const src = sourceLang === "auto" ? "the detected language" : sourceLang;
+  return `Translate the following text from ${src} to ${targetLang}.\n\nText:\n${text}`;
 }
 
-/* ============================================================
-   Languages
-============================================================ */
-function populateLanguages() {
-  els.sourceLang.innerHTML = LANGUAGES
-    .map((l) => `<option value="${l.code}">${l.name}</option>`)
-    .join('');
+async function translate() {
+  const text = els.sourceText.value.trim();
 
-  els.targetLang.innerHTML = LANGUAGES
-    .filter((l) => l.code !== 'auto')
-    .map((l) => `<option value="${l.code}">${l.name}</option>`)
-    .join('');
-}
-
-/* ============================================================
-   Translation core
-============================================================ */
-async function handleTranslate() {
-  const text = els.inputText.value.trim();
-  if (!text) return showToast('يرجى إدخال نص للترجمة', 'error');
-
-  if (state.sourceLang !== 'auto' && state.sourceLang === state.targetLang) {
-    return showToast('اللغة المصدر والهدف متطابقتان', 'error');
+  if (!text) {
+    setStatus(els.statusMsg, "أدخل نصاً للترجمة أولاً.", "error");
+    return;
+  }
+  if (!state.endpoint || !state.apiKey) {
+    setStatus(els.statusMsg, "يرجى إعداد الاتصال من زر الإعدادات ⚙️", "error");
+    openSettings();
+    return;
+  }
+  if (!state.model) {
+    setStatus(els.statusMsg, "لا يوجد نموذج محدد. اضغط ⟳ لتحديث النماذج.", "error");
+    return;
   }
 
   setLoading(true);
+  els.outputText.value = "";
+  setStatus(els.statusMsg, "جاري الترجمة...");
+
   try {
-    const result = state.endpoint.trim()
-      ? await translateWithEndpoint(text)
-      : await translateWithDemo(text);
+    const res = await fetch(`${state.endpoint}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: state.model,
+        messages: [
+          { role: "system", content: buildSystemPrompt() },
+          {
+            role: "user",
+            content: buildUserPrompt(
+              text,
+              els.sourceLang.value,
+              els.targetLang.value
+            ),
+          },
+        ],
+        temperature: 0.2,
+      }),
+    });
 
-    els.outputText.value = result;
-    saveHistory(text, result);
-    showToast('تمت الترجمة بنجاح', 'success');
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`فشل الطلب (${res.status}): ${errText.slice(0, 200)}`);
+    }
 
-    if (state.voiceEnabled) speak(result);
+    const data = await res.json();
+    const content =
+      data?.choices?.[0]?.message?.content?.trim() ||
+      data?.choices?.[0]?.text?.trim() ||
+      "";
+
+    if (!content) throw new Error("لم يُرجع النموذج أي نص.");
+
+    els.outputText.value = content;
+    setStatus(els.statusMsg, "✓ تمت الترجمة.", "success");
   } catch (err) {
     console.error(err);
-    showToast(err.message || 'حدث خطأ أثناء الترجمة', 'error');
+    setStatus(els.statusMsg, err.message || "حدث خطأ أثناء الترجمة.", "error");
   } finally {
     setLoading(false);
   }
 }
 
-async function translateWithDemo(text) {
-  const source = state.sourceLang === 'auto' ? 'en' : state.sourceLang;
-  const chunks = chunkText(text, DEMO_CHUNK_SIZE);
-  const results = [];
+/* ---------- UI events ---------- */
 
-  for (const chunk of chunks) {
-    const url =
-      'https://api.mymemory.translated.net/get?q=' +
-      encodeURIComponent(chunk) +
-      '&langpair=' +
-      source + '|' + state.targetLang;
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`فشل الاتصال بخدمة العرض (${res.status})`);
-
-    const data = await res.json();
-    const t = data?.responseData?.translatedText;
-    if (!t || /MYMEMORY WARNING/i.test(t)) {
-      throw new Error('تعذر الحصول على ترجمة من خدمة العرض. جرّب نقطة نهاية خاصة.');
-    }
-    results.push(decodeHtml(t));
-  }
-
-  return results.join('\n\n');
+function updateCharCount() {
+  els.charCount.textContent = `${els.sourceText.value.length} حرف`;
 }
 
-async function translateWithEndpoint(text) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (state.apiKey) {
-    headers['Authorization'] = `Bearer ${state.apiKey}`;
-    headers['X-API-Key'] = state.apiKey;
-    headers['api-key'] = state.apiKey;
+function swapLanguages() {
+  const src = els.sourceLang.value;
+  const tgt = els.targetLang.value;
+
+  if (src === "auto") {
+    setStatus(els.statusMsg, "لا يمكن تبديل الكشف التلقائي. اختر لغة محددة.", "error");
+    return;
   }
 
-  const body = {
-    q: text,
-    text,
-    source: state.sourceLang === 'auto' ? 'auto' : state.sourceLang,
-    target: state.targetLang,
-    target_lang: state.targetLang,
-    model: state.model,
-    api_key: state.apiKey
-  };
+  els.sourceLang.value = tgt;
+  els.targetLang.value = src;
 
-  let res;
+  const srcText = els.sourceText.value;
+  const outText = els.outputText.value;
+  if (outText) {
+    els.sourceText.value = outText;
+    els.outputText.value = srcText;
+    updateCharCount();
+  }
+}
+
+async function copyOutput() {
+  const text = els.outputText.value;
+  if (!text) return;
   try {
-    res = await fetch(state.endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body)
-    });
+    await navigator.clipboard.writeText(text);
+    setStatus(els.statusMsg, "✓ تم نسخ الترجمة.", "success");
   } catch {
-    throw new Error('تعذر الاتصال بالخادم. تحقق من عنوان URL.');
-  }
-
-  if (!res.ok) {
-    let detail = '';
-    try { detail = (await res.text()).slice(0, 140); } catch {}
-    throw new Error(`فشل الطلب (${res.status})${detail ? ': ' + detail : ''}`);
-  }
-
-  let data;
-  try { data = await res.json(); } catch { throw new Error('استجابة غير صالحة من الخادم'); }
-
-  const translated = extractTranslation(data);
-  if (!translated) throw new Error('لم يتم العثور على ترجمة في استجابة الخادم');
-  return translated;
-}
-
-function extractTranslation(data) {
-  if (typeof data === 'string') return data;
-  const candidates = [
-    data.translatedText,
-    data.translation,
-    data.result?.translatedText,
-    data.result?.text,
-    data.data?.translatedText,
-    data.data?.translations?.[0]?.translatedText,
-    data.translations?.[0]?.text,
-    data.choices?.[0]?.message?.content,
-    data.output
-  ];
-  for (const c of candidates) {
-    if (typeof c === 'string' && c.trim()) return c.trim();
-  }
-  return null;
-}
-
-/* ============================================================
-   Voice
-============================================================ */
-function speak(text) {
-  if (!('speechSynthesis' in window)) {
-    return showToast('المتصفح لا يدعم القراءة الصوتية', 'error');
-  }
-  speechSynthesis.cancel();
-
-  const lang = LANGUAGES.find((l) => l.code === state.targetLang);
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = lang?.speech || 'en-US';
-  utter.rate = 1;
-
-  const voices = speechSynthesis.getVoices();
-  if (voices.length) {
-    const match =
-      voices.find((v) => v.lang === utter.lang) ||
-      voices.find((v) => v.lang.startsWith(utter.lang.split('-')[0]));
-    if (match) utter.voice = match;
-  }
-
-  speechSynthesis.speak(utter);
-}
-
-/* ============================================================
-   History
-============================================================ */
-function saveHistory(src, tgt) {
-  try {
-    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    history.unshift({
-      src: src.slice(0, 500),
-      tgt: tgt.slice(0, 500),
-      model: state.model,
-      from: state.sourceLang,
-      to: state.targetLang,
-      at: Date.now()
-    });
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 100)));
-  } catch { /* ignore */ }
-}
-
-function clearHistory() {
-  try {
-    localStorage.removeItem(HISTORY_KEY);
-    showToast('تم مسح سجل الترجمات', 'success');
-  } catch {
-    showToast('تعذر مسح السجل', 'error');
+    setStatus(els.statusMsg, "تعذر النسخ.", "error");
   }
 }
 
-/* ============================================================
-   UI helpers
-============================================================ */
-let toastTimer;
-function showToast(msg, type = 'success') {
-  els.toast.textContent = msg;
-  els.toast.className = `toast show ${type === 'error' ? 'error' : ''}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => els.toast.classList.remove('show'), 3400);
+function clearAll() {
+  els.sourceText.value = "";
+  els.outputText.value = "";
+  updateCharCount();
+  setStatus(els.statusMsg, "");
+  els.sourceText.focus();
 }
 
-function setLoading(loading) {
-  els.translateBtn.disabled = loading;
-  const spinner = els.translateBtn.querySelector('.spinner');
-  const btnText = els.translateBtn.querySelector('.btn-text');
-  if (loading) {
-    spinner.hidden = false;
-    btnText.textContent = 'جارٍ الترجمة...';
-  } else {
-    spinner.hidden = true;
-    btnText.textContent = 'ترجمة';
-  }
-}
+/* ---------- Bindings ---------- */
 
-function updateInputCount() {
-  const len = els.inputText.value.length;
-  els.inputCount.textContent = `${len} حرف`;
-}
-
-async function handleFiles(event) {
-  const files = Array.from(event.target.files || []);
-  if (!files.length) return;
-
-  let combined = '';
-  for (const file of files) {
-    try {
-      const text = await file.text();
-      combined += (combined ? '\n\n' : '') + text;
-    } catch (err) {
-      console.warn('Read failed:', file.name, err);
-    }
-  }
-
-  if (combined) {
-    els.inputText.value = combined;
-    updateInputCount();
-    showToast(`تم استيراد ${files.length} ملف`, 'success');
-  } else {
-    showToast('تعذر قراءة الملفات المحددة', 'error');
-  }
-  event.target.value = '';
-}
-
-/* ============================================================
-   Event binding
-============================================================ */
 function bindEvents() {
-  // ---- Header dropdown
-  els.menuToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isHidden = els.dropdownMenu.hidden;
-    els.dropdownMenu.hidden = !isHidden;
-    els.menuToggle.setAttribute('aria-expanded', String(isHidden));
+  els.openSettingsBtn.addEventListener("click", openSettings);
+  els.closeSettingsBtn.addEventListener("click", closeSettings);
+  els.settingsModal.addEventListener("click", (e) => {
+    if (e.target === els.settingsModal) closeSettings();
   });
 
-  document.addEventListener('click', (e) => {
-    if (
-      !els.dropdownMenu.hidden &&
-      !els.dropdownMenu.contains(e.target) &&
-      !els.menuToggle.contains(e.target)
-    ) {
-      els.dropdownMenu.hidden = true;
-      els.menuToggle.setAttribute('aria-expanded', 'false');
-    }
+  els.saveSettingsBtn.addEventListener("click", async () => {
+    if (!saveSettings()) return;
+    await fetchModels();
   });
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !els.dropdownMenu.hidden) {
-      els.dropdownMenu.hidden = true;
-      els.menuToggle.setAttribute('aria-expanded', 'false');
-    }
+  els.clearSettingsBtn.addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    state.endpoint = "";
+    state.apiKey = "";
+    state.model = "";
+    state.models = [];
+    els.endpointInput.value = "";
+    els.apiKeyInput.value = "";
+    els.modelSelect.innerHTML = '<option value="">— لا يوجد نموذج —</option>';
+    els.modelSelect.disabled = true;
+    setStatus(els.settingsStatus, "تم مسح البيانات.", "success");
   });
 
-  // ---- Colors panel toggle
-  els.colorsBtn.addEventListener('click', () => {
-    els.colorsPanel.hidden = !els.colorsPanel.hidden;
-    els.dropdownMenu.hidden = true;
-    if (!els.colorsPanel.hidden) {
-      els.colorsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  });
-  els.closeColors.addEventListener('click', () => { els.colorsPanel.hidden = true; });
+  els.refreshModelsBtn.addEventListener("click", fetchModels);
 
-  // ---- Clear history
-  els.clearHistoryBtn.addEventListener('click', () => {
-    els.dropdownMenu.hidden = true;
-    clearHistory();
+  els.modelSelect.addEventListener("change", (e) => {
+    persistModel(e.target.value);
   });
 
-  // ---- Dark mode
-  els.darkModeToggle.addEventListener('change', () => {
-    state.darkMode = els.darkModeToggle.checked;
-    document.body.classList.toggle('dark', state.darkMode);
-    saveState();
-  });
+  els.translateBtn.addEventListener("click", translate);
 
-  // ---- API settings
-  els.apiKey.addEventListener('input', () => {
-    state.apiKey = els.apiKey.value;
-    saveState();
-  });
-  els.endpoint.addEventListener('input', () => {
-    state.endpoint = els.endpoint.value;
-    saveState();
-  });
+  els.sourceText.addEventListener("input", updateCharCount);
 
-  // ---- Language selectors
-  els.sourceLang.addEventListener('change', () => {
-    state.sourceLang = els.sourceLang.value;
-    saveState();
-  });
-  els.targetLang.addEventListener('change', () => {
-    state.targetLang = els.targetLang.value;
-    saveState();
-  });
-  els.model.addEventListener('change', () => {
-    state.model = els.model.value;
-    saveState();
-  });
-
-  els.swapLangs.addEventListener('click', () => {
-    if (state.sourceLang === 'auto') {
-      return showToast('لا يمكن تبديل الكشف التلقائي', 'error');
-    }
-    const tmp = state.sourceLang;
-    state.sourceLang = state.targetLang;
-    state.targetLang = tmp;
-    els.sourceLang.value = state.sourceLang;
-    els.targetLang.value = state.targetLang;
-    saveState();
-  });
-
-  // ---- Voice
-  els.voiceToggle.addEventListener('change', () => {
-    state.voiceEnabled = els.voiceToggle.checked;
-    saveState();
-    if (state.voiceEnabled) showToast('الترجمة الصوتية مفعّلة', 'success');
-  });
-
-  // ---- Import
-  els.importBtn.addEventListener('click', () => els.fileInput.click());
-  els.fileInput.addEventListener('change', handleFiles);
-
-  // ---- Input counter
-  els.inputText.addEventListener('input', updateInputCount);
-
-  // ---- Copy
-  els.copyBtn.addEventListener('click', async () => {
-    if (!els.outputText.value) return showToast('لا توجد ترجمة للنسخ', 'error');
-    try {
-      await navigator.clipboard.writeText(els.outputText.value);
-      showToast('تم نسخ الترجمة', 'success');
-    } catch {
-      showToast('تعذر النسخ إلى الحافظة', 'error');
-    }
-  });
-
-  // ---- Translate
-  els.translateBtn.addEventListener('click', handleTranslate);
-  els.inputText.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+  els.sourceText.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
-      handleTranslate();
+      translate();
     }
   });
 
-  // ---- Colors
-  els.primaryColor.addEventListener('input', () => {
-    state.colors.primary = els.primaryColor.value;
-    applyColors();
-    saveState();
-  });
-  els.secondaryColor.addEventListener('input', () => {
-    state.colors.secondary = els.secondaryColor.value;
-    applyColors();
-    saveState();
-  });
-  els.bgColor.addEventListener('input', () => {
-    state.colors.bg = els.bgColor.value;
-    applyColors();
-    saveState();
-  });
+  els.swapBtn.addEventListener("click", swapLanguages);
+  els.copyBtn.addEventListener("click", copyOutput);
+  els.clearBtn.addEventListener("click", clearAll);
 
-  els.resetColors.addEventListener('click', () => {
-    state.colors = { ...DEFAULT_STATE.colors };
-    applyColors();
-    saveState();
-    showToast('تمت استعادة الألوان الافتراضية', 'success');
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !els.settingsModal.classList.contains("hidden")) {
+      closeSettings();
+    }
   });
 }
 
-/* ============================================================
-   Boot
-============================================================ */
-function init() {
-  loadState();
-  populateLanguages();
-  bindEvents();
-  syncUI();
-  updateInputCount();
+/* ---------- Init ---------- */
 
-  // Preload voices for speech synthesis
-  if ('speechSynthesis' in window) {
-    speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+async function init() {
+  bindEvents();
+  updateCharCount();
+  loadSettings();
+
+  if (state.endpoint && state.apiKey) {
+    await fetchModels();
+  } else {
+    // أول تشغيل: افتح الإعدادات تلقائياً لتجربة سلسة
+    openSettings();
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener("DOMContentLoaded", init);
