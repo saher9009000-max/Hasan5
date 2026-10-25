@@ -1,450 +1,393 @@
-// إعداد مكتبة PDF.js
-if (window.pdfjsLib) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
+/* ══════════════════════════════════════════════════
+   LinguaHub Mobile — v1.0.0
+   ══════════════════════════════════════════════════ */
 
+const APP_VERSION = 'v1.0.0 (Build 100)';
+const API_URL = 'https://api.mymemory.translated.net/get';
+
+// ─── الحالة ───
 const state = {
-    engine: 'normal',
-    aiModel: '',
-    aiType: 'natural',
-    apiKey: localStorage.getItem('pt_apiKey') || '',
-    endpoint: localStorage.getItem('pt_endpoint') || 'https://api.groq.com/openai/v1',
-    history: JSON.parse(localStorage.getItem('pt_history') || '[]'),
-    favorites: JSON.parse(localStorage.getItem('pt_favorites') || '[]'),
-    tempModels: [],
-    selectedModelTemp: '',
-    selectedTypeTemp: 'natural',
-    currentTranslation: ''
+  sourceLang: 'ar',
+  targetLang: 'en',
+  theme: localStorage.getItem('lh_theme') || 'system',
+  color: localStorage.getItem('lh_color') || '#2563EB',
+  isListening: false,
 };
 
-const translationTypes = {
-    natural: { title: 'ترجمة طبيعية', desc: 'سلسة وطبيعية تناسب الاستخدام اليومي.', prompt: 'Translate the following text naturally and idiomatically.' },
-    literal: { title: 'ترجمة حرفية', desc: 'مباشرة كلمة بكلمة.', prompt: 'Translate the following text literally.' },
-    formal: { title: 'ترجمة رسمية', desc: 'للخطابات والمراسلات الرسمية.', prompt: 'Translate the following text in a formal tone.' },
-    informal: { title: 'ترجمة غير رسمية', desc: 'لغة عامية.', prompt: 'Translate the following text in an informal tone.' },
-    academic: { title: 'ترجمة أكاديمية', desc: 'دقيقة للأبحاث العلمية.', prompt: 'Translate in an academic tone suitable for scholarly articles.' },
-    professional: { title: 'ترجمة احترافية', desc: 'لمجال الأعمال والتقنية.', prompt: 'Translate professionally, using accurate industry terminology.' },
-    explain: { title: 'شرح معنى النص', desc: 'شرح السياق بدلاً من الترجمة الحرفية.', prompt: 'Explain the meaning and context of the following text in the target language clearly.' }
+// ─── عناصر DOM ───
+const $ = (id) => document.getElementById(id);
+const elements = {
+  sourceLang: $('sourceLang'),
+  targetLang: $('targetLang'),
+  sourceText: $('sourceText'),
+  targetText: $('targetText'),
+  charCount: $('charCount'),
+  matchScore: $('matchScore'),
+  translateBtn: $('translateBtn'),
+  swapBtn: $('swapBtn'),
+  clearBtn: $('clearBtn'),
+  micBtn: $('micBtn'),
+  ocrBtn: $('ocrBtn'),
+  speakBtn: $('speakBtn'),
+  copyBtn: $('copyBtn'),
+  imageInput: $('imageInput'),
+  themeToggle: $('themeToggle'),
+  themeModes: $('themeModes'),
+  colorGrid: $('colorGrid'),
+  toast: $('toast'),
+  contactForm: $('contactForm'),
 };
 
-const languages = [
-    { code: 'auto', name: 'اكتشاف تلقائي' }, { code: 'ar', name: 'العربية' },
-    { code: 'en', name: 'English' }, { code: 'fr', name: 'Français' },
-    { code: 'es', name: 'Español' }, { code: 'de', name: 'Deutsch' },
-    { code: 'tr', name: 'Türkçe' }, { code: 'ru', name: 'Русский' },
-    { code: 'zh', name: '中文' }, { code: 'ja', name: '日本語' }
-];
-
-const $ = id => document.getElementById(id);
-const html = document.documentElement;
-const themeToggle = $('themeToggle'), themeIcon = $('themeIcon');
-const moreBtn = $('moreBtn');
-const navItems = document.querySelectorAll('.nav-item'), views = document.querySelectorAll('.view-section');
-const engineBtns = document.querySelectorAll('.engine-btn'), aiOptions = $('aiOptions');
-const modelSelectBtn = $('modelSelectBtn'), currentModelName = $('currentModelName');
-const typeSelectBtn = $('typeSelectBtn'), currentTypeName = $('currentTypeName');
-const sourceLang = $('sourceLang'), targetLang = $('targetLang'), swapBtn = $('swapBtn');
-const sourceText = $('sourceText'), charCount = $('charCount'), pasteBtn = $('pasteBtn'), clearBtn = $('clearBtn');
-const importBtn = $('importBtn'), fileInput = $('fileInput');
-const resultText = $('resultText'), translateBtn = $('translateBtn');
-const ttsBtn = $('ttsBtn'), copyBtn = $('copyBtn'), favBtn = $('favBtn');
-const modals = document.querySelectorAll('.modal-overlay'), closeBtns = document.querySelectorAll('.close-btn, [data-close]');
-const settingsBtn = $('settingsBtn'), apiKeyInput = $('apiKeyInput'), endpointInput = $('endpointInput');
-const toggleKeyBtn = $('toggleKeyBtn'), saveSettingsBtn = $('saveSettingsBtn'), testConnBtn = $('testConnBtn');
-const modelSearch = $('modelSearch'), refreshModelsBtn = $('refreshModelsBtn'), modelList = $('modelList'), confirmModelBtn = $('confirmModelBtn');
-const typeGrid = $('typeGrid'), confirmTypeBtn = $('confirmTypeBtn'), toastContainer = $('toastContainer');
-
-// أزرار المزيد
-const buyProBtn = $('buyProBtn'), contactBtn = $('contactBtn');
-
-function showToast(msg, type = '') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = msg;
-    toastContainer.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+// ══════════════════════════════════════════════════
+// 1) السمة والألوان
+// ══════════════════════════════════════════════════
+function getEffectiveTheme() {
+  if (state.theme === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return state.theme;
 }
 
-function openModal(id) { $(id).classList.add('active'); }
-function closeModal(id) { $(id).classList.remove('active'); }
-closeBtns.forEach(btn => btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close') || btn.closest('.modal-overlay').id)));
-modals.forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal.id); }));
+function applyTheme() {
+  const effective = getEffectiveTheme();
+  document.documentElement.setAttribute('data-theme', effective);
+  document.documentElement.style.setProperty('--primary', state.color);
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', state.color);
 
-// ==========================================
-// تغيير لون الموقع
-// ==========================================
-function hexToRgb(hex) {
-    let r = 0, g = 0, b = 0;
-    if (hex.length == 4) {
-        r = parseInt(hex[1]+hex[1], 16); g = parseInt(hex[2]+hex[2], 16); b = parseInt(hex[3]+hex[3], 16);
-    } else if (hex.length == 7) {
-        r = parseInt(hex.substring(1,3), 16); g = parseInt(hex.substring(3,5), 16); b = parseInt(hex.substring(5,7), 16);
-    }
-    return `${r}, ${g}, ${b}`;
+  // أيقونة زر التبديل
+  elements.themeToggle.textContent = effective === 'dark' ? '☀️' : '🌙';
+
+  // تفعيل الأزرار المطابقة
+  document.querySelectorAll('#themeModes button').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.mode === state.theme);
+  });
+
+  // تفعيل نقطة اللون
+  document.querySelectorAll('.color-dot').forEach((dot) => {
+    dot.classList.toggle('active', dot.dataset.color.toLowerCase() === state.color.toLowerCase());
+  });
 }
 
-function shadeColor(color, percent) {
-    let R = parseInt(color.substring(1,3),16);
-    let G = parseInt(color.substring(3,5),16);
-    let B = parseInt(color.substring(5,7),16);
-    R = parseInt(R * (100 + percent) / 100); G = parseInt(G * (100 + percent) / 100); B = parseInt(B * (100 + percent) / 100);
-    R = (R<255)?R:255; G = (G<255)?G:255; B = (B<255)?B:255;  
-    let RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16));
-    let GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16));
-    let BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
-    return "#"+RR+GG+BB;
+function setTheme(mode) {
+  state.theme = mode;
+  localStorage.setItem('lh_theme', mode);
+  applyTheme();
 }
 
-function applyThemeColor(hex) {
-    const rgb = hexToRgb(hex);
-    const root = document.documentElement;
-    root.style.setProperty('--primary', hex);
-    root.style.setProperty('--primary-hover', shadeColor(hex, -15));
-    root.style.setProperty('--primary-light', `rgba(${rgb}, 0.15)`);
-    root.style.setProperty('--primary-glow', `rgba(${rgb}, 0.2)`);
-    
-    document.querySelectorAll('.color-dot').forEach(dot => {
-        dot.classList.toggle('active', dot.getAttribute('data-color') === hex);
-    });
-    
-    localStorage.setItem('pt_color', hex);
+function setColor(color) {
+  state.color = color;
+  localStorage.setItem('lh_color', color);
+  applyTheme();
 }
 
-document.querySelectorAll('.color-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-        applyThemeColor(dot.getAttribute('data-color'));
-        showToast('تم تغيير لون الموقع', 'success');
-    });
+// استمع لتغيير الوضع في النظام
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (state.theme === 'system') applyTheme();
 });
 
-// ==========================================
-// التهيئة
-// ==========================================
-function init() {
-    const savedTheme = localStorage.getItem('pt_theme') || 'light';
-    html.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
-
-    const savedColor = localStorage.getItem('pt_color') || '#0d9488';
-    applyThemeColor(savedColor);
-
-    languages.forEach(lang => {
-        sourceLang.add(new Option(lang.name, lang.code));
-        targetLang.add(new Option(lang.name, lang.code));
-    });
-    sourceLang.value = 'auto'; targetLang.value = 'ar';
-
-    apiKeyInput.value = state.apiKey; endpointInput.value = state.endpoint;
-    renderTypeCards(); renderHistory(); renderFavorites();
-    if(state.aiModel) currentModelName.textContent = state.aiModel;
+// ══════════════════════════════════════════════════
+// 2) التنقل بين الشاشات
+// ══════════════════════════════════════════════════
+function switchScreen(tab) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
+  document.getElementById(`screen-${tab}`).classList.add('active');
+  document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function updateThemeIcon(theme) {
-    themeIcon.innerHTML = theme === 'dark' ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>' : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
-}
-themeToggle.addEventListener('click', () => {
-    const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    html.setAttribute('data-theme', next); localStorage.setItem('pt_theme', next); updateThemeIcon(next);
-});
+// ══════════════════════════════════════════════════
+// 3) الترجمة
+// ══════════════════════════════════════════════════
+async function translate() {
+  const text = elements.sourceText.value.trim();
+  if (!text) {
+    showToast('أدخل نصًا للترجمة أولاً');
+    return;
+  }
+  if (state.sourceLang === state.targetLang) {
+    showToast('اختر لغتين مختلفتين');
+    return;
+  }
 
-moreBtn.addEventListener('click', () => openModal('moreMenuModal'));
+  elements.translateBtn.disabled = true;
+  elements.translateBtn.classList.add('loading');
+  elements.targetText.textContent = '';
 
-// أحداث أزرار المزيد
-buyProBtn.addEventListener('click', () => {
-    showToast('شكراً لاهتمامك! سيتم توجيهك للدفع.', 'success');
-});
-
-contactBtn.addEventListener('click', () => {
-    showToast('البريد الإلكتروني: support@protranslate.com');
-});
-
-navItems.forEach(item => item.addEventListener('click', () => {
-    navItems.forEach(i => i.classList.remove('active')); item.classList.add('active');
-    views.forEach(v => v.classList.remove('active')); $(`view-${item.getAttribute('data-view')}`).classList.add('active');
-}));
-
-engineBtns.forEach(btn => btn.addEventListener('click', () => {
-    engineBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active');
-    state.engine = btn.getAttribute('data-engine');
-    aiOptions.classList.toggle('hidden', state.engine !== 'ai');
-}));
-
-sourceText.addEventListener('input', () => charCount.textContent = sourceText.value.length);
-pasteBtn.addEventListener('click', async () => {
-    try { const text = await navigator.clipboard.readText(); sourceText.value = text; charCount.textContent = text.length; } catch (e) { showToast('تعذر اللصق', 'error'); }
-});
-clearBtn.addEventListener('click', () => { sourceText.value = ''; charCount.textContent = '0'; resultText.textContent = 'الترجمة ستظهر هنا...'; state.currentTranslation = ''; });
-
-// ==========================================
-// استيراد الملفات
-// ==========================================
-importBtn.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    showToast('جاري قراءة الملف...');
-    
-    try {
-        let text = '';
-        if (file.name.endsWith('.txt')) {
-            text = await file.text();
-        } else if (file.name.endsWith('.pdf')) {
-            if (!window.pdfjsLib) throw new Error('مكتبة PDF غير محملة');
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                text += content.items.map(item => item.str).join(' ') + '\n';
-            }
-        } else if (file.name.endsWith('.docx')) {
-            if (!window.mammoth) throw new Error('مكتبة DOCX غير محملة');
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
-            text = result.value;
-        } else {
-            showToast('صيغة غير مدعومة', 'error');
-            return;
-        }
-        
-        sourceText.value = text.trim().substring(0, 5000);
-        charCount.textContent = sourceText.value.length;
-        showToast('تم استيراد الملف بنجاح', 'success');
-    } catch (error) {
-        console.error(error);
-        showToast('فشل قراءة الملف: ' + error.message, 'error');
-    } finally {
-        fileInput.value = '';
-    }
-});
-
-swapBtn.addEventListener('click', () => {
-    if (sourceLang.value === 'auto') return showToast('لا يمكن تبديل الاكتشاف التلقائي', 'error');
-    const temp = sourceLang.value; sourceLang.value = targetLang.value; targetLang.value = temp;
-    if (resultText.textContent !== 'الترجمة ستظهر هنا...') {
-        const tempText = sourceText.value; sourceText.value = resultText.textContent; resultText.textContent = tempText; charCount.textContent = sourceText.value.length;
-    }
-});
-
-settingsBtn.addEventListener('click', () => openModal('settingsModal'));
-toggleKeyBtn.addEventListener('click', () => apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password');
-saveSettingsBtn.addEventListener('click', () => {
-    state.apiKey = apiKeyInput.value.trim();
-    state.endpoint = endpointInput.value.trim() || 'https://api.groq.com/openai/v1';
-    localStorage.setItem('pt_apiKey', state.apiKey); localStorage.setItem('pt_endpoint', state.endpoint);
-    showToast('تم حفظ الإعدادات بنجاح', 'success'); closeModal('settingsModal');
-});
-
-testConnBtn.addEventListener('click', async () => {
-    const key = apiKeyInput.value.trim();
-    const ep = (endpointInput.value.trim() || 'https://api.groq.com/openai/v1').replace(/\/+$/, '');
-    if(!key) return showToast('أدخل مفتاح API أولاً', 'error');
-    
-    testConnBtn.textContent = 'جاري...';
-    try {
-        const res = await fetch(`${ep}/models`, { headers: { 'Authorization': `Bearer ${key}` } });
-        if(res.ok) showToast('الاتصال ناجح!', 'success');
-        else showToast('فشل الاتصال، تحقق من المفتاح أو الرابط', 'error');
-    } catch(e) {
-        showToast('خطأ في الشبكة أو CORS', 'error');
-    } finally { testConnBtn.textContent = 'اختبار الاتصال'; }
-});
-
-modelSelectBtn.addEventListener('click', async () => {
-    if(!state.apiKey) { showToast('يرجى إدخال مفتاح API في الإعدادات أولاً', 'error'); openModal('settingsModal'); return; }
-    openModal('modelModal'); await fetchModels();
-});
-refreshModelsBtn.addEventListener('click', fetchModels);
-
-modelSearch.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    renderModelList(state.tempModels.filter(m => m.id.toLowerCase().includes(term)));
-});
-
-confirmModelBtn.addEventListener('click', () => {
-    if(state.selectedModelTemp) {
-        state.aiModel = state.selectedModelTemp;
-        currentModelName.textContent = state.aiModel;
-        closeModal('modelModal'); showToast('تم اختيار النموذج');
-    }
-});
-
-async function fetchModels() {
-    const cleanEndpoint = state.endpoint.replace(/\/+$/, '');
-    modelList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">جاري جلب النماذج...</div>';
-    try {
-        const res = await fetch(`${cleanEndpoint}/models`, { headers: { 'Authorization': `Bearer ${state.apiKey}` } });
-        if(!res.ok) throw new Error('فشل الجلب، تأكد من صحة الرابط');
-        const data = await res.json();
-        state.tempModels = data.data || [];
-        if(state.tempModels.length === 0) throw new Error('لا توجد نماذج متاحة');
-        
-        if (!state.selectedModelTemp) state.selectedModelTemp = state.tempModels[0].id;
-        renderModelList(state.tempModels);
-    } catch(e) {
-        modelList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--danger);">${e.message}</div>`;
-    }
-}
-
-function renderModelList(models) {
-    modelList.innerHTML = '';
-    models.forEach(m => {
-        const div = document.createElement('div');
-        div.className = `model-item ${m.id === state.selectedModelTemp ? 'selected' : ''}`;
-        div.innerHTML = `<span style="font-size:0.85rem; word-break:break-all;">${m.id}</span>`;
-        div.onclick = () => { state.selectedModelTemp = m.id; renderModelList(models); };
-        modelList.appendChild(div);
-    });
-}
-
-typeSelectBtn.addEventListener('click', () => {
-    if(state.engine === 'normal') return showToast('نوع الترجمة متاح فقط في وضع AI', 'error');
-    openModal('typeModal'); state.selectedTypeTemp = state.aiType; renderTypeCards();
-});
-
-function renderTypeCards() {
-    typeGrid.innerHTML = '';
-    Object.keys(translationTypes).forEach(key => {
-        const type = translationTypes[key];
-        const div = document.createElement('div');
-        div.className = `type-card ${key === state.selectedTypeTemp ? 'selected' : ''}`;
-        div.innerHTML = `<svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg><div class="type-card-title">${type.title}</div><div class="type-card-desc">${type.desc}</div>`;
-        div.onclick = () => { state.selectedTypeTemp = key; renderTypeCards(); };
-        typeGrid.appendChild(div);
-    });
-}
-confirmTypeBtn.addEventListener('click', () => { state.aiType = state.selectedTypeTemp; currentTypeName.textContent = translationTypes[state.aiType].title; closeModal('typeModal'); });
-
-translateBtn.addEventListener('click', async () => {
-    const text = sourceText.value.trim();
-    if (!text) return showToast('يرجى إدخال نص للترجمة', 'error');
-    if (state.engine === 'ai' && !state.apiKey) { showToast('أدخل مفتاح API أولاً', 'error'); openModal('settingsModal'); return; }
-    if (state.engine === 'ai' && !state.aiModel) { showToast('اختر نموذجاً أولاً', 'error'); openModal('modelModal'); return; }
-
-    translateBtn.classList.add('loading');
-    const originalBtnHtml = translateBtn.innerHTML;
-    translateBtn.innerHTML = '<div class="spinner"></div> جاري الترجمة...';
-    resultText.textContent = '...';
-
-    try {
-        let translated = (state.engine === 'normal') 
-            ? await translateNormal(text, sourceLang.value, targetLang.value)
-            : await translateAI(text, sourceLang.value, targetLang.value);
-
-        resultText.textContent = translated;
-        state.currentTranslation = translated;
-        saveToHistory(text, translated);
-    } catch (error) {
-        console.error(error);
-        resultText.textContent = 'عذراً، حدث خطأ.';
-        showToast(error.message || 'فشلت الترجمة', 'error');
-    } finally {
-        translateBtn.classList.remove('loading');
-        translateBtn.innerHTML = originalBtnHtml;
-    }
-});
-
-async function translateNormal(text, from, to) {
-    const src = from === 'auto' ? 'en' : from;
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${src}|${to}`;
+  try {
+    const url = `${API_URL}?q=${encodeURIComponent(text)}&langpair=${state.sourceLang}|${state.targetLang}`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('فشل الاتصال بالخدمة العادية');
+    if (!res.ok) throw new Error('network');
     const data = await res.json();
-    if (data.responseData && data.responseData.translatedText) {
-        const txt = document.createElement('textarea'); txt.innerHTML = data.responseData.translatedText; return txt.value;
-    }
-    throw new Error('تعذر الحصول على ترجمة');
+
+    const translated = data?.responseData?.translatedText || '';
+    if (!translated) throw new Error('empty');
+
+    elements.targetText.textContent = translated;
+    elements.matchScore.textContent = data?.responseData?.match
+      ? `${(data.responseData.match * 100).toFixed(1)}%`
+      : '—';
+  } catch (err) {
+    elements.targetText.textContent = '⚠️ تعذر الاتصال بخدمة الترجمة. تحقق من الإنترنت.';
+    showToast('فشلت الترجمة');
+  } finally {
+    elements.translateBtn.disabled = false;
+    elements.translateBtn.classList.remove('loading');
+  }
 }
 
-async function translateAI(text, from, to) {
-    const cleanEndpoint = state.endpoint.replace(/\/+$/, '');
-    const langName = (code) => (languages.find(l => l.code === code) || {}).name || code;
-    const prompt = translationTypes[state.aiType].prompt;
-    const systemMsg = `You are a professional translator. ${prompt} Translate from ${from === 'auto' ? 'detected language' : langName(from)} to ${langName(to)}. Return ONLY the translated text.`;
+// ══════════════════════════════════════════════════
+// 4) تبديل اللغات
+// ══════════════════════════════════════════════════
+function swapLanguages() {
+  [state.sourceLang, state.targetLang] = [state.targetLang, state.sourceLang];
+  elements.sourceLang.value = state.sourceLang;
+  elements.targetLang.value = state.targetLang;
 
-    const res = await fetch(`${cleanEndpoint}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.apiKey}` },
-        body: JSON.stringify({ model: state.aiModel, messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: text }], temperature: 0.3 })
+  // تبديل النص
+  const currentResult = elements.targetText.textContent;
+  if (currentResult && currentResult !== 'الترجمة ستظهر هنا' && !currentResult.startsWith('⚠️')) {
+    elements.sourceText.value = currentResult;
+    elements.targetText.textContent = 'الترجمة ستظهر هنا';
+  }
+  updateTextDirection();
+  updateCharCount();
+}
+
+function updateTextDirection() {
+  const dir = ['ar', 'he', 'fa'].includes(state.sourceLang) ? 'rtl' : 'ltr';
+  elements.sourceText.style.direction = dir;
+  elements.sourceText.style.textAlign = dir === 'rtl' ? 'right' : 'left';
+
+  const targetDir = ['ar', 'he', 'fa'].includes(state.targetLang) ? 'rtl' : 'ltr';
+  elements.targetText.style.direction = targetDir;
+  elements.targetText.style.textAlign = targetDir === 'rtl' ? 'right' : 'left';
+}
+
+function updateCharCount() {
+  elements.charCount.textContent = elements.sourceText.value.length;
+}
+
+// ══════════════════════════════════════════════════
+// 5) الإدخال الصوتي (Web Speech API)
+// ══════════════════════════════════════════════════
+function startVoiceInput() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('متصفحك لا يدعم الإدخال الصوتي');
+    return;
+  }
+  if (state.isListening) return;
+
+  const recognition = new SR();
+  recognition.lang = state.sourceLang === 'ar' ? 'ar-SA' : state.sourceLang;
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    state.isListening = true;
+    elements.micBtn.classList.add('listening');
+    showToast('🎤 تحدث الآن...');
+  };
+
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = 0; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    elements.sourceText.value = transcript;
+    updateCharCount();
+  };
+
+  recognition.onerror = (event) => {
+    showToast('خطأ في الاستماع: ' + event.error);
+  };
+
+  recognition.onend = () => {
+    state.isListening = false;
+    elements.micBtn.classList.remove('listening');
+  };
+
+  recognition.start();
+}
+
+// ══════════════════════════════════════════════════
+// 6) التحدث بصوت (TTS)
+// ══════════════════════════════════════════════════
+function speakResult() {
+  const text = elements.targetText.textContent;
+  if (!text || text === 'الترجمة ستظهر هنا' || text.startsWith('⚠️')) {
+    showToast('لا يوجد نص لقراءته');
+    return;
+  }
+  if (!('speechSynthesis' in window)) {
+    showToast('متصفحك لا يدعم النطق');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = state.targetLang === 'ar' ? 'ar-SA' : state.targetLang;
+  utterance.rate = 0.95;
+  window.speechSynthesis.speak(utterance);
+  showToast('🔊 جارٍ النطق...');
+}
+
+// ══════════════════════════════════════════════════
+// 7) نسخ النص
+// ══════════════════════════════════════════════════
+async function copyResult() {
+  const text = elements.targetText.textContent;
+  if (!text || text === 'الترجمة ستظهر هنا') return;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ تم النسخ');
+  } catch {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showToast('✅ تم النسخ');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 8) استخراج النص من الصورة (OCR)
+// ══════════════════════════════════════════════════
+async function processImage(file) {
+  if (typeof Tesseract === 'undefined') {
+    showToast('محرك OCR غير متاح');
+    return;
+  }
+  showToast('🔍 جارٍ استخراج النص...');
+  try {
+    const result = await Tesseract.recognize(file, state.sourceLang, {
+      logger: (m) => {
+        if (m.status === 'recognizing text') {
+          elements.ocrBtn.textContent = `⏳ ${Math.round(m.progress * 100)}%`;
+        }
+      },
     });
-
-    if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error?.message || 'فشل الاتصال بمزود AI. تأكد من الرابط والمفتاح.');
-    }
-    const data = await res.json();
-    return data.choices[0].message.content.trim();
+    elements.sourceText.value = result.data.text.trim();
+    updateCharCount();
+    showToast('✅ تم استخراج النص');
+  } catch (err) {
+    showToast('تعذر استخراج النص');
+  } finally {
+    elements.ocrBtn.textContent = '📷';
+    elements.imageInput.value = '';
+  }
 }
 
-ttsBtn.addEventListener('click', () => {
-    const text = state.currentTranslation || resultText.textContent;
-    if (!text || text === 'الترجمة ستظهر هنا...') return showToast('لا يوجد نص لسماعه', 'error');
+// ══════════════════════════════════════════════════
+// 9) نموذج الاتصال
+// ══════════════════════════════════════════════════
+function handleContactSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const name = form.name.value.trim();
+  const email = form.email.value.trim();
+  const subject = form.subject.value;
+  const message = form.message.value.trim();
 
-    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+  if (!name || !email || !message) {
+    showToast('يرجى ملء الحقول المطلوبة');
+    return;
+  }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    const targetCode = targetLang.value;
-    const langMap = { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR', 'es': 'es-ES', 'de': 'de-DE', 'tr': 'tr-TR', 'ru': 'ru-RU', 'zh': 'zh-CN', 'ja': 'ja-JP' };
-    utterance.lang = langMap[targetCode] || targetCode;
-    utterance.rate = 1.2;
-    utterance.pitch = 1;
-    
-    window.speechSynthesis.speak(utterance);
-    showToast('جاري النطق السريع...', 'success');
-});
-
-copyBtn.addEventListener('click', async () => {
-    if (!state.currentTranslation) return showToast('لا يوجد نص لنسخه', 'error');
-    try { await navigator.clipboard.writeText(state.currentTranslation); showToast('تم النسخ بنجاح', 'success'); } catch (e) { showToast('فشل النسخ', 'error'); }
-});
-
-favBtn.addEventListener('click', () => {
-    if (!state.currentTranslation) return showToast('لا يوجد نص للحفظ', 'error');
-    if (state.favorites.some(f => f.text === state.currentTranslation)) return showToast('موجود بالفعل');
-    state.favorites.unshift({ id: Date.now(), original: sourceText.value, text: state.currentTranslation });
-    localStorage.setItem('pt_favorites', JSON.stringify(state.favorites));
-    favBtn.classList.add('fav-active'); showToast('تمت الإضافة', 'success');
-    renderFavorites(); setTimeout(() => favBtn.classList.remove('fav-active'), 1000);
-});
-
-function saveToHistory(original, translated) {
-    state.history.unshift({ id: Date.now(), original, translated });
-    if (state.history.length > 50) state.history.pop();
-    localStorage.setItem('pt_history', JSON.stringify(state.history));
-    renderHistory();
+  const body = `الاسم: ${name}%0Aالبريد: ${email}%0A%0A${message}`;
+  const mailto = `mailto:support@linguahub.app?subject=${encodeURIComponent(subject)}&body=${body}`;
+  window.location.href = mailto;
+  showToast('📧 فتح تطبيق البريد...');
+  form.reset();
 }
-function renderHistory() {
-    const list = $('historyList');
-    if (state.history.length === 0) return list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">السجل فارغ</div>';
-    list.innerHTML = state.history.map(item => `
-        <div class="history-item">
-            <div class="history-text">${item.translated}</div>
-            <div class="history-sub">${item.original}</div>
-            <div class="history-actions">
-                <button class="tool-btn" onclick="copyText('${item.translated.replace(/'/g, "\\'")}')">نسخ</button>
-                <button class="tool-btn" onclick="deleteHistory(${item.id})" style="color:var(--danger)">حذف</button>
-            </div>
-        </div>
-    `).join('');
-}
-function renderFavorites() {
-    const list = $('favoritesList');
-    if (state.favorites.length === 0) return list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">المفضلة فارغة</div>';
-    list.innerHTML = state.favorites.map(item => `
-        <div class="history-item">
-            <div class="history-text">${item.text}</div>
-            <div class="history-sub">${item.original}</div>
-            <div class="history-actions">
-                <button class="tool-btn" onclick="copyText('${item.text.replace(/'/g, "\\'")}')">نسخ</button>
-                <button class="tool-btn" onclick="deleteFav(${item.id})" style="color:var(--danger)">حذف</button>
-            </div>
-        </div>
-    `).join('');
-}
-window.copyText = (text) => { navigator.clipboard.writeText(text); showToast('تم النسخ', 'success'); };
-window.deleteHistory = (id) => { state.history = state.history.filter(i => i.id !== id); localStorage.setItem('pt_history', JSON.stringify(state.history)); renderHistory(); };
-window.deleteFav = (id) => { state.favorites = state.favorites.filter(i => i.id !== id); localStorage.setItem('pt_favorites', JSON.stringify(state.favorites)); renderFavorites(); };
 
-init();
+// ══════════════════════════════════════════════════
+// 10) Toast
+// ══════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  elements.toast.textContent = msg;
+  elements.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    elements.toast.classList.remove('show');
+  }, 2400);
+}
+
+// ══════════════════════════════════════════════════
+// 11) ربط الأحداث
+// ══════════════════════════════════════════════════
+function bindEvents() {
+  // التنقل
+  document.querySelectorAll('.nav-btn').forEach((btn) => {
+    btn.addEventListener('click', () => switchScreen(btn.dataset.tab));
+  });
+
+  // السمة
+  elements.themeToggle.addEventListener('click', () => {
+    const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+  });
+
+  elements.themeModes.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (btn) setTheme(btn.dataset.mode);
+  });
+
+  elements.colorGrid.addEventListener('click', (e) => {
+    const dot = e.target.closest('.color-dot');
+    if (dot) setColor(dot.dataset.color);
+  });
+
+  // الترجمة
+  elements.translateBtn.addEventListener('click', translate);
+  elements.swapBtn.addEventListener('click', swapLanguages);
+  elements.clearBtn.addEventListener('click', () => {
+    elements.sourceText.value = '';
+    elements.targetText.textContent = 'الترجمة ستظهر هنا';
+    elements.matchScore.textContent = '—';
+    updateCharCount();
+  });
+
+  elements.sourceLang.addEventListener('change', (e) => {
+    state.sourceLang = e.target.value;
+    updateTextDirection();
+  });
+  elements.targetLang.addEventListener('change', (e) => {
+    state.targetLang = e.target.value;
+    updateTextDirection();
+  });
+
+  elements.sourceText.addEventListener('input', updateCharCount);
+
+  // الصوت والنطق والنسخ
+  elements.micBtn.addEventListener('click', startVoiceInput);
+  elements.speakBtn.addEventListener('click', speakResult);
+  elements.copyBtn.addEventListener('click', copyResult);
+
+  // OCR
+  elements.ocrBtn.addEventListener('click', () => elements.imageInput.click());
+  elements.imageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) processImage(file);
+  });
+
+  // نموذج الاتصال
+  elements.contactForm.addEventListener('submit', handleContactSubmit);
+}
+
+// ══════════════════════════════════════════════════
+// 12) التهيئة
+// ══════════════════════════════════════════════════
+function init() {
+  applyTheme();
+  updateTextDirection();
+  updateCharCount();
+  bindEvents();
+  console.log(`%c🌐 LinguaHub Mobile ${APP_VERSION}`, 'color:#2563EB;font-weight:bold;font-size:14px');
+}
+
+document.addEventListener('DOMContentLoaded', init);
