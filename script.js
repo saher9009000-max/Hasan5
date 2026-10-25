@@ -1,404 +1,158 @@
-/* =========================================================
-   المترجم الذكي — Client-Side فقط
-   - لا مفاتيح أو نماذج ثابتة
-   - جلب النماذج تلقائياً من /models
-   - طلبات متوافقة مع OpenAI / Groq (/chat/completions)
-   ========================================================= */
+(function () {
+  'use strict';
 
-const STORAGE_KEY = "smart_translator_settings_v1";
+  const $ = (id) => document.getElementById(id);
 
-const state = {
-  endpoint: "",
-  apiKey: "",
-  model: "",
-  models: [],
-  loading: false,
-};
-
-/* ---------- DOM ---------- */
-const $ = (id) => document.getElementById(id);
-
-const els = {
-  // header
-  modelSelect: $("modelSelect"),
-  refreshModelsBtn: $("refreshModelsBtn"),
-  openSettingsBtn: $("openSettingsBtn"),
-
-  // main
-  sourceLang: $("sourceLang"),
-  targetLang: $("targetLang"),
-  sourceText: $("sourceText"),
-  outputText: $("outputText"),
-  charCount: $("charCount"),
-  statusMsg: $("statusMsg"),
-  translateBtn: $("translateBtn"),
-  swapBtn: $("swapBtn"),
-  copyBtn: $("copyBtn"),
-  clearBtn: $("clearBtn"),
-
-  // settings modal
-  settingsModal: $("settingsModal"),
-  closeSettingsBtn: $("closeSettingsBtn"),
-  endpointInput: $("endpointInput"),
-  apiKeyInput: $("apiKeyInput"),
-  saveSettingsBtn: $("saveSettingsBtn"),
-  clearSettingsBtn: $("clearSettingsBtn"),
-  settingsStatus: $("settingsStatus"),
-};
-
-/* ---------- Helpers ---------- */
-
-function normalizeBase(url) {
-  return (url || "").trim().replace(/\/+$/, "");
-}
-
-function setStatus(el, message, type = "") {
-  el.textContent = message || "";
-  el.classList.remove("error", "success");
-  if (type) el.classList.add(type);
-}
-
-function setLoading(loading) {
-  state.loading = loading;
-  els.translateBtn.disabled = loading;
-  els.translateBtn.querySelector("span").textContent = loading ? "جاري..." : "ترجم";
-}
-
-/* ---------- LocalStorage ---------- */
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    state.endpoint = normalizeBase(data.endpoint || "");
-    state.apiKey = data.apiKey || "";
-    state.model = data.model || "";
-
-    els.endpointInput.value = state.endpoint;
-    els.apiKeyInput.value = state.apiKey;
-  } catch (err) {
-    console.warn("تعذر قراءة الإعدادات المحفوظة:", err);
-  }
-}
-
-function saveSettings() {
-  const endpoint = normalizeBase(els.endpointInput.value);
-  const apiKey = els.apiKeyInput.value.trim();
-
-  if (!endpoint || !apiKey) {
-    setStatus(els.settingsStatus, "الرجاء إدخال الرابط والمفتاح معاً.", "error");
-    return false;
+  /* ---------- Toast ---------- */
+  let toastTimer = null;
+  function showToast(message, type = '') {
+    const toast = $('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.className = 'toast'; }, 2200);
   }
 
-  if (!/^https?:\/\//i.test(endpoint)) {
-    setStatus(els.settingsStatus, "الرابط يجب أن يبدأ بـ http:// أو https://", "error");
-    return false;
-  }
+  /* ---------- 1) لصق مفتاح API ---------- */
+  const apiKeyInput = $('apiKeyInput');
+  const pasteBtn    = $('pasteBtn');
 
-  state.endpoint = endpoint;
-  state.apiKey = apiKey;
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ endpoint, apiKey, model: state.model })
-  );
-
-  setStatus(els.settingsStatus, "✓ تم الحفظ بنجاح.", "success");
-  return true;
-}
-
-function persistModel(modelId) {
-  state.model = modelId;
-  try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    data.model = modelId;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (_) {}
-}
-
-/* ---------- Settings Modal ---------- */
-
-function openSettings() {
-  els.endpointInput.value = state.endpoint;
-  els.apiKeyInput.value = state.apiKey;
-  setStatus(els.settingsStatus, "");
-  els.settingsModal.classList.remove("hidden");
-  els.settingsModal.setAttribute("aria-hidden", "false");
-  setTimeout(() => els.endpointInput.focus(), 50);
-}
-
-function closeSettings() {
-  els.settingsModal.classList.add("hidden");
-  els.settingsModal.setAttribute("aria-hidden", "true");
-}
-
-/* ---------- Dynamic Models Fetching ---------- */
-
-function renderModelSelect(models) {
-  els.modelSelect.innerHTML = "";
-
-  if (!models.length) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "— لا توجد نماذج —";
-    els.modelSelect.appendChild(opt);
-    els.modelSelect.disabled = true;
-    return;
-  }
-
-  models.forEach((id) => {
-    const opt = document.createElement("option");
-    opt.value = id;
-    opt.textContent = id;
-    els.modelSelect.appendChild(opt);
+  pasteBtn.addEventListener('click', async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (!text) { showToast('الحافظة فارغة', 'error'); return; }
+        apiKeyInput.value = text.trim();
+        showToast('تم لصق مفتاح API', 'success');
+      } else {
+        apiKeyInput.focus();
+        showToast('اللصق غير مدعوم — الصق يدويًا');
+      }
+    } catch (err) {
+      apiKeyInput.focus();
+      showToast('تعذر الوصول للحافظة — الصق يدويًا', 'error');
+    }
   });
 
-  if (state.model && models.includes(state.model)) {
-    els.modelSelect.value = state.model;
-  } else {
-    state.model = models[0];
-    els.modelSelect.value = state.model;
-    persistModel(state.model);
-  }
+  /* ---------- 2) استيراد ملفات ---------- */
+  const importBtn = $('importBtn');
+  const fileInput = $('fileInput');
+  const fileInfo  = $('fileInfo');
 
-  els.modelSelect.disabled = false;
-}
+  importBtn.addEventListener('click', () => fileInput.click());
 
-async function fetchModels() {
-  if (!state.endpoint || !state.apiKey) {
-    setStatus(els.settingsStatus, "أدخل الرابط والمفتاح أولاً ثم احفظ.", "error");
-    return;
-  }
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) { fileInfo.textContent = 'لم يتم اختيار ملف'; return; }
 
-  els.refreshModelsBtn.disabled = true;
-  setStatus(els.settingsStatus, "جاري تحميل النماذج...");
+    const ext = file.name.split('.').pop().toLowerCase();
+    const allowed = ['html', 'htm', 'json', 'csv'];
+    if (!allowed.includes(ext)) {
+      fileInfo.textContent = 'صيغة غير مدعومة';
+      showToast('الرجاء اختيار HTML أو JSON أو CSV', 'error');
+      return;
+    }
+    const sizeKb = (file.size / 1024).toFixed(1);
+    fileInfo.textContent = `تم اختيار: ${file.name} (${sizeKb} KB)`;
+    showToast('تم استيراد الملف بنجاح', 'success');
+  });
 
-  try {
-    const res = await fetch(`${state.endpoint}/models`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${state.apiKey}`,
-      },
+  /* ---------- 3) ترجمة صوتية ---------- */
+  const voiceBtn    = $('voiceBtn');
+  const voiceStatus = $('voiceStatus');
+  let recognizing   = false;
+  let recognition   = null;
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (SpeechRec) {
+    recognition = new SpeechRec();
+    recognition.lang = 'ar-SA';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.addEventListener('result', (ev) => {
+      const transcript = ev.results[0][0].transcript;
+      voiceStatus.textContent = 'النص: ' + transcript;
+      showToast('تم التعرف على الصوت', 'success');
     });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`فشل تحميل النماذج (${res.status}). ${txt.slice(0, 150)}`);
-    }
-
-    const data = await res.json();
-    const list = Array.isArray(data?.data)
-      ? data.data.map((m) => m.id).filter(Boolean)
-      : [];
-
-    if (!list.length) throw new Error("لم يتم العثور على أي نموذج متاح.");
-
-    state.models = list.sort((a, b) => a.localeCompare(b));
-    renderModelSelect(state.models);
-
-    setStatus(els.settingsStatus, `✓ تم تحميل ${list.length} نموذج.`, "success");
-  } catch (err) {
-    console.error(err);
-    setStatus(els.settingsStatus, err.message || "خطأ في الاتصال.", "error");
-  } finally {
-    els.refreshModelsBtn.disabled = false;
-  }
-}
-
-/* ---------- Translate ---------- */
-
-function buildSystemPrompt() {
-  return "You are a professional translator. Translate the user's text accurately. Return ONLY the translated text without explanations, quotes, or notes.";
-}
-
-function buildUserPrompt(text, sourceLang, targetLang) {
-  const src = sourceLang === "auto" ? "the detected language" : sourceLang;
-  return `Translate the following text from ${src} to ${targetLang}.\n\nText:\n${text}`;
-}
-
-async function translate() {
-  const text = els.sourceText.value.trim();
-
-  if (!text) {
-    setStatus(els.statusMsg, "أدخل نصاً للترجمة أولاً.", "error");
-    return;
-  }
-  if (!state.endpoint || !state.apiKey) {
-    setStatus(els.statusMsg, "يرجى إعداد الاتصال من زر الإعدادات ⚙️", "error");
-    openSettings();
-    return;
-  }
-  if (!state.model) {
-    setStatus(els.statusMsg, "لا يوجد نموذج محدد. اضغط ⟳ لتحديث النماذج.", "error");
-    return;
-  }
-
-  setLoading(true);
-  els.outputText.value = "";
-  setStatus(els.statusMsg, "جاري الترجمة...");
-
-  try {
-    const res = await fetch(`${state.endpoint}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${state.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: state.model,
-        messages: [
-          { role: "system", content: buildSystemPrompt() },
-          {
-            role: "user",
-            content: buildUserPrompt(
-              text,
-              els.sourceLang.value,
-              els.targetLang.value
-            ),
-          },
-        ],
-        temperature: 0.2,
-      }),
+    recognition.addEventListener('error', () => {
+      recognizing = false;
+      voiceBtn.classList.remove('recording');
+      voiceStatus.textContent = 'تعذر التعرف على الصوت';
+      showToast('خطأ في التعرف الصوتي', 'error');
     });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`فشل الطلب (${res.status}): ${errText.slice(0, 200)}`);
-    }
-
-    const data = await res.json();
-    const content =
-      data?.choices?.[0]?.message?.content?.trim() ||
-      data?.choices?.[0]?.text?.trim() ||
-      "";
-
-    if (!content) throw new Error("لم يُرجع النموذج أي نص.");
-
-    els.outputText.value = content;
-    setStatus(els.statusMsg, "✓ تمت الترجمة.", "success");
-  } catch (err) {
-    console.error(err);
-    setStatus(els.statusMsg, err.message || "حدث خطأ أثناء الترجمة.", "error");
-  } finally {
-    setLoading(false);
-  }
-}
-
-/* ---------- UI events ---------- */
-
-function updateCharCount() {
-  els.charCount.textContent = `${els.sourceText.value.length} حرف`;
-}
-
-function swapLanguages() {
-  const src = els.sourceLang.value;
-  const tgt = els.targetLang.value;
-
-  if (src === "auto") {
-    setStatus(els.statusMsg, "لا يمكن تبديل الكشف التلقائي. اختر لغة محددة.", "error");
-    return;
-  }
-
-  els.sourceLang.value = tgt;
-  els.targetLang.value = src;
-
-  const srcText = els.sourceText.value;
-  const outText = els.outputText.value;
-  if (outText) {
-    els.sourceText.value = outText;
-    els.outputText.value = srcText;
-    updateCharCount();
-  }
-}
-
-async function copyOutput() {
-  const text = els.outputText.value;
-  if (!text) return;
-  try {
-    await navigator.clipboard.writeText(text);
-    setStatus(els.statusMsg, "✓ تم نسخ الترجمة.", "success");
-  } catch {
-    setStatus(els.statusMsg, "تعذر النسخ.", "error");
-  }
-}
-
-function clearAll() {
-  els.sourceText.value = "";
-  els.outputText.value = "";
-  updateCharCount();
-  setStatus(els.statusMsg, "");
-  els.sourceText.focus();
-}
-
-/* ---------- Bindings ---------- */
-
-function bindEvents() {
-  els.openSettingsBtn.addEventListener("click", openSettings);
-  els.closeSettingsBtn.addEventListener("click", closeSettings);
-  els.settingsModal.addEventListener("click", (e) => {
-    if (e.target === els.settingsModal) closeSettings();
-  });
-
-  els.saveSettingsBtn.addEventListener("click", async () => {
-    if (!saveSettings()) return;
-    await fetchModels();
-  });
-
-  els.clearSettingsBtn.addEventListener("click", () => {
-    localStorage.removeItem(STORAGE_KEY);
-    state.endpoint = "";
-    state.apiKey = "";
-    state.model = "";
-    state.models = [];
-    els.endpointInput.value = "";
-    els.apiKeyInput.value = "";
-    els.modelSelect.innerHTML = '<option value="">— لا يوجد نموذج —</option>';
-    els.modelSelect.disabled = true;
-    setStatus(els.settingsStatus, "تم مسح البيانات.", "success");
-  });
-
-  els.refreshModelsBtn.addEventListener("click", fetchModels);
-
-  els.modelSelect.addEventListener("change", (e) => {
-    persistModel(e.target.value);
-  });
-
-  els.translateBtn.addEventListener("click", translate);
-
-  els.sourceText.addEventListener("input", updateCharCount);
-
-  els.sourceText.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      translate();
-    }
-  });
-
-  els.swapBtn.addEventListener("click", swapLanguages);
-  els.copyBtn.addEventListener("click", copyOutput);
-  els.clearBtn.addEventListener("click", clearAll);
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !els.settingsModal.classList.contains("hidden")) {
-      closeSettings();
-    }
-  });
-}
-
-/* ---------- Init ---------- */
-
-async function init() {
-  bindEvents();
-  updateCharCount();
-  loadSettings();
-
-  if (state.endpoint && state.apiKey) {
-    await fetchModels();
+    recognition.addEventListener('end', () => {
+      recognizing = false;
+      voiceBtn.classList.remove('recording');
+    });
   } else {
-    // أول تشغيل: افتح الإعدادات تلقائياً لتجربة سلسة
-    openSettings();
+    voiceStatus.textContent = 'التعرف الصوتي غير مدعوم على هذا المتصفح';
   }
-}
 
-document.addEventListener("DOMContentLoaded", init);
+  voiceBtn.addEventListener('click', () => {
+    if (!recognition) { showToast('الميزة غير مدعومة', 'error'); return; }
+    if (recognizing) { recognition.stop(); return; }
+    try {
+      recognition.start();
+      recognizing = true;
+      voiceBtn.classList.add('recording');
+      voiceStatus.textContent = 'جارٍ الاستماع…';
+    } catch (e) {
+      showToast('تعذر بدء التسجيل', 'error');
+    }
+  });
+
+  /* ---------- 4) الخامة ---------- */
+  const materialSelect = $('materialSelect');
+  materialSelect.addEventListener('change', () => {
+    const labels = { text: 'نص', voice: 'صوت', image: 'صورة', document: 'مستند' };
+    showToast('تم اختيار: ' + labels[materialSelect.value]);
+  });
+
+  /* ---------- 5) رابط SPI ---------- */
+  const spiInput = $('spiInput');
+  spiInput.addEventListener('blur', () => {
+    const v = spiInput.value.trim();
+    if (v && !/^https?:\/\//i.test(v)) {
+      showToast('يجب أن يبدأ الرابط بـ http:// أو https://', 'error');
+    }
+  });
+
+  /* ---------- 6) اختبار الاتصال ---------- */
+  const testBtn    = $('testBtn');
+  const testStatus = $('testStatus');
+
+  testBtn.addEventListener('click', async () => {
+    const apiKey = apiKeyInput.value.trim();
+    const spi    = spiInput.value.trim();
+
+    if (!apiKey) { testStatus.textContent = 'الرجاء إدخال مفتاح API أولًا'; showToast('مفتاح API مطلوب', 'error'); return; }
+    if (!spi)    { testStatus.textContent = 'الرجاء إدخال رابط SPI أولًا'; showToast('رابط SPI مطلوب', 'error'); return; }
+    if (!/^https?:\/\//i.test(spi)) { testStatus.textContent = 'صيغة رابط SPI غير صحيحة'; showToast('تحقق من رابط SPI', 'error'); return; }
+
+    testBtn.disabled = true;
+    testStatus.textContent = 'جارٍ اختبار الاتصال…';
+    showToast('جارٍ الاختبار…');
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(spi, { method: 'GET', signal: controller.signal, mode: 'cors' });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        testStatus.textContent = 'الاتصال ناجح ✓';
+        showToast('تم الاتصال بنجاح', 'success');
+      } else {
+        testStatus.textContent = 'فشل الاتصال (' + res.status + ')';
+        showToast('فشل الاتصال', 'error');
+      }
+    } catch (err) {
+      testStatus.textContent = 'تعذر الاتصال — تحقق من الرابط';
+      showToast('تعذر الاتصال', 'error');
+    } finally {
+      testBtn.disabled = false;
+    }
+  });
+})();
