@@ -1,260 +1,213 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="light">
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ترجمة احترافية | Pro Translate</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    
-    <!-- مكتبات قراءة ملفات PDF و DOCX -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+  <meta name="theme-color" content="#2563EB" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>LinguaHub Mobile — ترجمة احترافية</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <header class="app-header">
-        <div class="logo">
-            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            Pro Translate
-        </div>
-        <div class="header-actions">
-            <!-- زر المزيد (3 نقاط) -->
-            <button class="icon-btn" id="moreBtn" title="المزيد">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
-            </button>
-            <button class="icon-btn" id="themeToggle" title="الوضع الداكن">
-                <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            </button>
-            <button class="icon-btn" id="settingsBtn" title="الإعدادات">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-        </div>
-    </header>
-
-    <main class="main-content">
-        <div id="view-translate" class="view-section active">
-            
-            <div class="controls-container">
-                <div class="engine-selector">
-                    <button class="engine-btn active" data-engine="normal">
-                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
-                        ترجمة عادية
-                    </button>
-                    <button class="engine-btn" data-engine="ai">
-                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        ذكاء اصطناعي
-                    </button>
-                </div>
-
-                <div class="ai-options hidden" id="aiOptions">
-                    <button class="ai-option-btn" id="modelSelectBtn">
-                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                        <span class="btn-text" id="currentModelName">اختر النموذج</span>
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
-                    </button>
-                    <button class="ai-option-btn" id="typeSelectBtn">
-                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                        <span class="btn-text" id="currentTypeName">ترجمة طبيعية</span>
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="translation-card">
-                <div class="lang-bar">
-                    <div class="lang-select">
-                        <select id="sourceLang"><option value="auto">اكتشاف تلقائي</option></select>
-                    </div>
-                    <button class="swap-btn" id="swapBtn">
-                        <svg viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
-                    </button>
-                    <div class="lang-select">
-                        <select id="targetLang"><option value="ar">العربية</option></select>
-                    </div>
-                </div>
-
-                <div class="text-area-container">
-                    <textarea id="sourceText" placeholder="اكتب النص هنا..." maxlength="5000"></textarea>
-                    <div class="text-area-tools">
-                        <div class="tool-group">
-                            <button class="tool-btn" id="pasteBtn">
-                                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-                                لصق
-                            </button>
-                            <button class="tool-btn" id="importBtn">
-                                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                استيراد
-                            </button>
-                            <button class="tool-btn" id="clearBtn">
-                                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                مسح
-                            </button>
-                            <input type="file" id="fileInput" accept=".txt,.pdf,.docx" hidden>
-                        </div>
-                        <span class="char-count"><span id="charCount">0</span> / 5000</span>
-                    </div>
-                </div>
-
-                <div class="result-container">
-                    <div class="result-text" id="resultText">الترجمة ستظهر هنا...</div>
-                    <div class="result-tools">
-                        <button class="tts-btn" id="ttsBtn">
-                            <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                            سماع سريع
-                        </button>
-                        <button class="result-action-btn" id="copyBtn" title="نسخ">
-                            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        </button>
-                        <button class="result-action-btn" id="favBtn" title="حفظ في المفضلة">
-                            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <button class="main-translate-btn" id="translateBtn">
-                <svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
-                ترجم الآن
-            </button>
-        </div>
-
-        <div id="view-history" class="view-section">
-            <h2 style="font-size:1.2rem; margin-bottom:8px;">سجل الترجمات</h2>
-            <div id="historyList" style="display:flex; flex-direction:column; gap:12px;"></div>
-        </div>
-
-        <div id="view-favorites" class="view-section">
-            <h2 style="font-size:1.2rem; margin-bottom:8px;">المفضلة</h2>
-            <div id="favoritesList" style="display:flex; flex-direction:column; gap:12px;"></div>
-        </div>
-    </main>
-
-    <nav class="bottom-nav">
-        <button class="nav-item active" data-view="translate">
-            <svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
-            الترجمة
-        </button>
-        <button class="nav-item" data-view="history">
-            <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4m-.5-4v-4m0 4h4"/></svg>
-            السجل
-        </button>
-        <button class="nav-item" data-view="favorites">
-            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            المفضلة
-        </button>
-    </nav>
-
-    <!-- نافذة الإعدادات -->
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">الإعدادات (Groq / OpenAI)</span>
-                <button class="close-btn" data-close="settingsModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label>مفتاح API (Groq Key يبدأ بـ gsk_)</label>
-                    <div class="input-with-btn">
-                        <input type="password" id="apiKeyInput" placeholder="gsk_...">
-                        <button class="btn-secondary" id="toggleKeyBtn"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label>عنوان Endpoint (مثال: https://api.groq.com/openai/v1)</label>
-                    <input type="text" id="endpointInput" placeholder="https://api.groq.com/openai/v1">
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-primary" id="saveSettingsBtn">حفظ الإعدادات</button>
-                    <button class="btn-secondary" id="testConnBtn">اختبار الاتصال</button>
-                </div>
-            </div>
-        </div>
+  <!-- شريط علوي -->
+  <header class="app-bar">
+    <div class="brand">
+      <span class="logo">🌐</span>
+      <span class="brand-name">LinguaHub</span>
     </div>
+    <button class="icon-btn" id="themeToggle" aria-label="تبديل السمة">🌙</button>
+  </header>
 
-    <!-- نافذة النماذج -->
-    <div class="modal-overlay" id="modelModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">اختيار النموذج (جلب تلقائي)</span>
-                <button class="close-btn" data-close="modelModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div class="modal-body">
-                <div class="search-box">
-                    <input type="text" id="modelSearch" placeholder="ابحث عن نموذج...">
-                    <button class="btn-secondary" id="refreshModelsBtn"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
-                </div>
-                <div class="model-list" id="modelList"></div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="btn-primary" id="confirmModelBtn">تأكيد</button>
-                    <button class="btn-secondary" data-close="modelModal">إلغاء</button>
-                </div>
-            </div>
+  <!-- المحتوى -->
+  <main class="app-main">
+
+    <!-- ─────────── شاشة الترجمة ─────────── -->
+    <section class="screen active" id="screen-translate">
+      <div class="lang-selector">
+        <select class="lang-select" id="sourceLang">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="de">Deutsch</option>
+          <option value="tr">Türkçe</option>
+        </select>
+        <button class="swap-btn" id="swapBtn" aria-label="تبديل اللغات">⇄</button>
+        <select class="lang-select" id="targetLang">
+          <option value="ar">العربية</option>
+          <option value="en" selected>English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="de">Deutsch</option>
+          <option value="tr">Türkçe</option>
+        </select>
+      </div>
+
+      <div class="text-card">
+        <textarea id="sourceText" class="text-input" placeholder="اكتب النص هنا..." rows="5"></textarea>
+        <div class="card-actions">
+          <button class="icon-btn" id="micBtn" title="إدخال صوتي">🎤</button>
+          <button class="icon-btn" id="ocrBtn" title="استخراج نص من صورة">📷</button>
+          <button class="icon-btn" id="clearBtn" title="مسح">✕</button>
+          <span class="char-count" id="charCount">0</span>
         </div>
-    </div>
+        <input type="file" id="imageInput" accept="image/*" hidden />
+      </div>
 
-    <!-- نافذة نوع الترجمة -->
-    <div class="modal-overlay" id="typeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">نوع الترجمة</span>
-                <button class="close-btn" data-close="typeModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div class="modal-body">
-                <div class="type-grid" id="typeGrid"></div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="btn-primary" id="confirmTypeBtn">تأكيد</button>
-                    <button class="btn-secondary" data-close="typeModal">إلغاء</button>
-                </div>
-            </div>
+      <button class="btn-primary" id="translateBtn">
+        <span>ترجم الآن</span>
+      </button>
+
+      <div class="text-card result-card">
+        <div id="targetText" class="result-text">الترجمة ستظهر هنا</div>
+        <div class="card-actions">
+          <button class="icon-btn" id="speakBtn" title="استماع">🔊</button>
+          <button class="icon-btn" id="copyBtn" title="نسخ">📋</button>
         </div>
-    </div>
+      </div>
 
-    <!-- نافذة المزيد (3 نقاط) -->
-    <div class="modal-overlay" id="moreMenuModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">المزيد</span>
-                <button class="close-btn" data-close="moreMenuModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            <div class="modal-body">
-                <div style="text-align: center; margin-bottom: 16px;">
-                    <p style="font-weight: 800; font-size: 1.2rem; color: var(--primary);">Pro Translate</p>
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">الإصدار 2.5.0</p>
-                </div>
-                
-                <button class="btn-primary" id="buyProBtn" style="margin-bottom: 8px;">
-                    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    شراء نسخة PRO
-                </button>
-                
-                <button class="btn-secondary" id="contactBtn" style="margin-bottom: 16px; width: 100%;">
-                    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    اتصل بنا
-                </button>
+      <div class="engine-badge">
+        المحرك: <strong>MyMemory NMT</strong> • المسافة: <strong id="matchScore">—</strong>
+      </div>
+    </section>
 
-                <div class="input-group">
-                    <label style="text-align: center; margin-bottom: 8px;">تغيير لون الموقع</label>
-                    <div style="display: flex; gap: 12px; justify-content: center; padding: 10px;">
-                        <button class="color-dot active" data-color="#0d9488" style="background: #0d9488;"></button>
-                        <button class="color-dot" data-color="#3b82f6" style="background: #3b82f6;"></button>
-                        <button class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></button>
-                        <button class="color-dot" data-color="#ec4899" style="background: #ec4899;"></button>
-                        <button class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></button>
-                    </div>
-                </div>
-            </div>
+    <!-- ─────────── شاشة المشاريع ─────────── -->
+    <section class="screen" id="screen-projects">
+      <h2 class="screen-title">مشاريعي</h2>
+
+      <div class="project-card">
+        <div class="project-head">
+          <h3>ترجمة عقد قانوني</h3>
+          <span class="status ongoing">قيد التنفيذ</span>
         </div>
-    </div>
+        <p class="project-meta">عربي ← إنجليزي • 2,450 كلمة</p>
+        <div class="progress-bar"><div class="progress-fill" style="width: 65%"></div></div>
+        <span class="progress-label">65%</span>
+      </div>
 
-    <div class="toast-container" id="toastContainer"></div>
+      <div class="project-card">
+        <div class="project-head">
+          <h3>دليل مستخدم تقني</h3>
+          <span class="status review">مراجعة</span>
+        </div>
+        <p class="project-meta">إنجليزي ← عربي • 5,120 كلمة</p>
+        <div class="progress-bar"><div class="progress-fill" style="width: 88%"></div></div>
+        <span class="progress-label">88%</span>
+      </div>
 
-    <script src="script.js"></script>
+      <div class="project-card">
+        <div class="project-head">
+          <h3>محتوى تسويقي</h3>
+          <span class="status done">مكتمل</span>
+        </div>
+        <p class="project-meta">عربي ← فرنسي • 890 كلمة</p>
+        <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
+        <span class="progress-label">100%</span>
+      </div>
+    </section>
+
+    <!-- ─────────── شاشة الاتصال ─────────── -->
+    <section class="screen" id="screen-contact">
+      <h2 class="screen-title">اتصل بنا</h2>
+      <p class="screen-subtitle">نرد خلال ساعتين عمل</p>
+
+      <div class="contact-actions">
+        <a class="contact-btn" href="mailto:support@linguahub.app">📧 البريد</a>
+        <a class="contact-btn" href="tel:+905000000000">📞 اتصال</a>
+        <a class="contact-btn" href="https://wa.me/905000000000" target="_blank" rel="noopener">💬 واتساب</a>
+      </div>
+
+      <form class="contact-form" id="contactForm">
+        <label>الاسم
+          <input type="text" name="name" required />
+        </label>
+        <label>البريد الإلكتروني
+          <input type="email" name="email" required />
+        </label>
+        <label>الموضوع
+          <select name="subject" required>
+            <option value="دعم فني">دعم فني</option>
+            <option value="استفسار عن الاشتراك">استفسار عن الاشتراك</option>
+            <option value="طلب عرض تجريبي للشركات">طلب عرض تجريبي للشركات</option>
+            <option value="أخرى">أخرى</option>
+          </select>
+        </label>
+        <label>الرسالة
+          <textarea name="message" rows="4" required></textarea>
+        </label>
+        <button type="submit" class="btn-primary">إرسال</button>
+      </form>
+
+      <div class="contact-info">
+        <p>📧 support@linguahub.app</p>
+        <p>📞 +90 500 000 0000</p>
+        <p>📍 إسطنبول، تركيا</p>
+      </div>
+    </section>
+
+    <!-- ─────────── شاشة الإعدادات ─────────── -->
+    <section class="screen" id="screen-settings">
+      <h2 class="screen-title">الإعدادات</h2>
+
+      <div class="setting-group">
+        <label class="setting-label">المظهر</label>
+        <div class="segmented" id="themeModes">
+          <button data-mode="light">☀️ فاتح</button>
+          <button data-mode="dark">🌙 داكن</button>
+          <button data-mode="system">⚙️ النظام</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">اللون الرئيسي</label>
+        <div class="color-grid" id="colorGrid">
+          <button class="color-dot" data-color="#2563EB" style="background:#2563EB" aria-label="أزرق"></button>
+          <button class="color-dot" data-color="#16A34A" style="background:#16A34A" aria-label="أخضر"></button>
+          <button class="color-dot" data-color="#DC2626" style="background:#DC2626" aria-label="أحمر"></button>
+          <button class="color-dot" data-color="#9333EA" style="background:#9333EA" aria-label="بنفسجي"></button>
+          <button class="color-dot" data-color="#EA580C" style="background:#EA580C" aria-label="برتقالي"></button>
+          <button class="color-dot" data-color="#0891B2" style="background:#0891B2" aria-label="سماوي"></button>
+          <button class="color-dot" data-color="#DB2777" style="background:#DB2777" aria-label="وردي"></button>
+          <button class="color-dot" data-color="#475569" style="background:#475569" aria-label="رمادي"></button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">حول التطبيق</label>
+        <div class="about-card">
+          <p><strong>LinguaHub Mobile</strong></p>
+          <p>تطبيق ترجمة احترافي متعدد المحركات</p>
+          <p class="version">الإصدار v1.0.0 (Build 100)</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- شريط التنقل السفلي -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="translate">
+      <span class="nav-icon">🌐</span><span>ترجمة</span>
+    </button>
+    <button class="nav-btn" data-tab="projects">
+      <span class="nav-icon">📁</span><span>المشاريع</span>
+    </button>
+    <button class="nav-btn" data-tab="contact">
+      <span class="nav-icon">📧</span><span>اتصل</span>
+    </button>
+    <button class="nav-btn" data-tab="settings">
+      <span class="nav-icon">⚙️</span><span>الإعدادات</span>
+    </button>
+  </nav>
+
+  <!-- توست -->
+  <div class="toast" id="toast"></div>
+
+  <!-- OCR (اختياري عبر CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
