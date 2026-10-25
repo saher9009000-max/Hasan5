@@ -1,318 +1,645 @@
-// 1. قاموس اللغات
-const languages = {
-auto:  "🔍 اكتشاف تلقائي ", ar:  "🇸🇦 العربية ", en:  "🇺🇸 الإنجليزية ", fr:  "🇫🇷 الفرنسية ",
-es:  "🇪🇸 الإسبانية ", de:  "🇩🇪 الألمانية ", it:  "🇮🇹 الإيطالية ", pt:  "🇵🇹 البرتغالية ",
-ru:  "🇷🇺 الروسية ", zh:  "🇨🇳 الصينية ", ja:  "🇯🇵 اليابانية ", ko:  "🇰🇷 الكورية ",
-tr:  "🇹🇷 التركية ", hi:  "🇮🇳 الهندية ", ur:  "🇵🇰 الأردية ", fa:  "🇮🇷 الفارسية ",
-nl:  "🇳🇱 الهولندية ", pl:  "🇵🇱 البولندية ", sv:  "🇸🇪 السويدية ", el:  "🇬🇷 اليونانية ",
-he:  "🇮🇱 العبرية ", th:  "🇹🇭 التايلاندية ", vi:  "🇻🇳 الفيتنامية ", id:  "🇮🇩 الإندونيسية "
+// ==========================================
+// 1. البيانات والحالة (State)
+// ==========================================
+const state = {
+    engine: 'normal', // 'normal' | 'ai'
+    aiModel: '',
+    aiModelFullName: '',
+    aiType: 'natural',
+    apiKey: localStorage.getItem('pt_apiKey') || '',
+    endpoint: localStorage.getItem('pt_endpoint') || 'https://api.openai.com/v1',
+    history: JSON.parse(localStorage.getItem('pt_history') || '[]'),
+    favorites: JSON.parse(localStorage.getItem('pt_favorites') || '[]'),
+    tempModels: [],
+    selectedModelTemp: '',
+    selectedTypeTemp: 'natural',
+    currentTranslation: ''
 };
 
-// 2. عناصر DOM
-const sourceLang = document.getElementById('sourceLang');
-const targetLang = document.getElementById('targetLang');
-const sourceText = document.getElementById('sourceText');
-const targetText = document.getElementById('targetText');
-const translateBtn = document.getElementById('translateBtn');
-const swapBtn = document.getElementById('swapBtn');
-const clearBtn = document.getElementById('clearBtn');
-const copyBtn = document.getElementById('copyBtn');
-const voiceBtn = document.getElementById('voiceBtn');
-const speakSource = document.getElementById('speakSource');
-const speakTarget = document.getElementById('speakTarget');
-const fileInput = document.getElementById('fileInput');
-const charCount = document.getElementById('charCount');
-const statusEl = document.getElementById('status');
-const themeToggle = document.getElementById('themeToggle');
-const toast = document.getElementById('toast');
-const aiToggle = document.getElementById('aiToggle');
+// خريطة أنواع الترجمة
+const translationTypes = {
+    natural: { title: 'ترجمة طبيعية', desc: 'ترجمة سلسة وطبيعية تناسب الاستخدام اليومي.', prompt: 'Translate the following text naturally and idiomatically.' },
+    literal: { title: 'ترجمة حرفية', desc: 'ترجمة مباشرة كلمة بكلمة مع الحفاظ على البنية.', prompt: 'Translate the following text literally, keeping the sentence structure as close to the original as possible.' },
+    formal: { title: 'ترجمة رسمية', desc: 'مناسبة للخطابات والمراسلات الرسمية.', prompt: 'Translate the following text in a formal, professional, and polite tone.' },
+    informal: { title: 'ترجمة غير رسمية', desc: 'لغة عامية وقريبة من الحديث اليومي.', prompt: 'Translate the following text in an informal, casual, and conversational tone.' },
+    academic: { title: 'ترجمة أكاديمية', desc: 'دقيقة ومناسبة للأبحاث والمقالات العلمية.', prompt: 'Translate the following text in a precise, academic tone suitable for scholarly articles.' },
+    professional: { title: 'ترجمة احترافية', desc: 'مصطلحات دقيقة تناسب مجال الأعمال والتقنية.', prompt: 'Translate the following text professionally, using accurate industry-specific terminology.' },
+    explain: { title: 'شرح معنى النص', desc: 'لا تترجم فقط، بل اشرح المعنى والسياق.', prompt: 'Do not just translate. Explain the meaning and context of the following text in the target language clearly.' }
+};
 
-// السجل والإعدادات
-const historyBtn = document.getElementById('historyBtn');
-const historyModal = document.getElementById('historyModal');
-const historyList = document.getElementById('historyList');
-const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const uxModeToggle = document.getElementById('uxModeToggle');
-const closeBtns = document.querySelectorAll('.close-btn');
+// اللغات
+const languages = [
+    { code: 'auto', name: 'اكتشاف تلقائي' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'en', name: 'English' },
+    { code: 'fr', name: 'Français' },
+    { code: 'es', name: 'Español' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'tr', name: 'Türkçe' },
+    { code: 'ru', name: 'Русский' },
+    { code: 'zh', name: '中文' },
+    { code: 'ja', name: '日本語' },
+    { code: 'ko', name: '한국어' },
+    { code: 'hi', name: 'हिन्दी' },
+    { code: 'ur', name: 'اردو' },
+    { code: 'fa', name: 'فارسی' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'pt', name: 'Português' },
+    { code: 'nl', name: 'Nederlands' },
+    { code: 'pl', name: 'Polski' },
+    { code: 'sv', name: 'Svenska' },
+    { code: 'he', name: 'עברית' }
+];
 
-// 3. تعبئة اللغات
-function populateLanguages() {
-    for (const [code, name] of Object.entries(languages)) {
-        if (code !== 'auto') {
-            sourceLang.add(new Option(name, code));
-            targetLang.add(new Option(name, code));
-        }
-    }
-    sourceLang.value = 'ar';
-    targetLang.value = 'en';
+// ==========================================
+// 2. العناصر (DOM Elements)
+// ==========================================
+const $ = id => document.getElementById(id);
+
+// Theme & Nav
+const html = document.documentElement;
+const themeToggle = $('themeToggle');
+const themeIcon = $('themeIcon');
+const navItems = document.querySelectorAll('.nav-item');
+const views = document.querySelectorAll('.view-section');
+
+// Controls
+const engineBtns = document.querySelectorAll('.engine-btn');
+const aiOptions = $('aiOptions');
+const modelSelectBtn = $('modelSelectBtn');
+const currentModelName = $('currentModelName');
+const typeSelectBtn = $('typeSelectBtn');
+const currentTypeName = $('currentTypeName');
+
+// Translation Area
+const sourceLang = $('sourceLang');
+const targetLang = $('targetLang');
+const swapBtn = $('swapBtn');
+const sourceText = $('sourceText');
+const charCount = $('charCount');
+const pasteBtn = $('pasteBtn');
+const clearBtn = $('clearBtn');
+const resultText = $('resultText');
+const translateBtn = $('translateBtn');
+
+// Result Tools
+const ttsBtn = $('ttsBtn');
+const copyBtn = $('copyBtn');
+const favBtn = $('favBtn');
+const shareBtn = $('shareBtn');
+
+// Modals
+const modals = document.querySelectorAll('.modal-overlay');
+const closeBtns = document.querySelectorAll('.close-btn, [data-close]');
+const settingsBtn = $('settingsBtn');
+const apiKeyInput = $('apiKeyInput');
+const endpointInput = $('endpointInput');
+const toggleKeyBtn = $('toggleKeyBtn');
+const saveSettingsBtn = $('saveSettingsBtn');
+const testConnBtn = $('testConnBtn');
+const clearKeyBtn = $('clearKeyBtn');
+
+const modelSearch = $('modelSearch');
+const refreshModelsBtn = $('refreshModelsBtn');
+const modelList = $('modelList');
+const confirmModelBtn = $('confirmModelBtn');
+
+const typeGrid = $('typeGrid');
+const confirmTypeBtn = $('confirmTypeBtn');
+
+// Toast
+const toastContainer = $('toastContainer');
+
+// ==========================================
+// 3. وظائف مساعدة (Helpers)
+// ==========================================
+
+// إظهار إشعار
+function showToast(msg, type = '') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = msg;
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
-populateLanguages();
 
-// 4. نظام الثيمات (الألوان والوضع الليلي)
-themeToggle.addEventListener('click', () => {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-        document.body.removeAttribute('data-theme');
-        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-        localStorage.setItem('theme', 'light');
-    } else {
-        document.body.setAttribute('data-theme', 'dark');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-        localStorage.setItem('theme', 'dark');
-    }
-});
-if (localStorage.getItem('theme') === 'dark') {
-    document.body.setAttribute('data-theme', 'dark');
-    themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+// فتح/إغلاق النوافذ
+function openModal(id) {
+    $(id).classList.add('active');
 }
-
-document.querySelectorAll('.color-circle').forEach(circle => {
-    circle.addEventListener('click', () => {
-        const color = circle.getAttribute('data-color');
-        if (color === 'purple') {
-            document.body.removeAttribute('data-color');
-        } else {
-            document.body.setAttribute('data-color', color);
-        }
-        localStorage.setItem('themeColor', color);
+function closeModal(id) {
+    $(id).classList.remove('active');
+}
+closeBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const modalId = btn.getAttribute('data-close') || btn.closest('.modal-overlay').id;
+        closeModal(modalId);
     });
 });
-const savedColor = localStorage.getItem('themeColor');
-if (savedColor && savedColor !== 'purple') {
-    document.body.setAttribute('data-color', savedColor);
-}
-
-// 5. تبديل اللغات
-swapBtn.addEventListener('click', () => {
-    const temp = sourceLang.value;
-    sourceLang.value = targetLang.value;
-    targetLang.value = temp === 'auto' ? 'en' : temp;
+modals.forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(modal.id);
+    });
 });
 
-// 6. أدوات النص
+// ==========================================
+// 4. التهيئة (Initialization)
+// ==========================================
+function init() {
+    // الوضع الداكن
+    const savedTheme = localStorage.getItem('pt_theme') || 'light';
+    html.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    // تعبئة اللغات
+    languages.forEach(lang => {
+        const opt1 = new Option(lang.name, lang.code);
+        const opt2 = new Option(lang.name, lang.code);
+        sourceLang.add(opt1);
+        targetLang.add(opt2);
+    });
+    sourceLang.value = 'auto';
+    targetLang.value = 'ar';
+
+    // تعبئة حقول الإعدادات
+    apiKeyInput.value = state.apiKey;
+    endpointInput.value = state.endpoint;
+
+    // تعبئة أنواع الترجمة
+    renderTypeCards();
+    
+    // تعبئة السجل والمفضلة
+    renderHistory();
+    renderFavorites();
+
+    // تحديث اسم النموذج الافتراضي
+    if(state.aiModel) {
+        currentModelName.textContent = state.aiModel;
+    }
+}
+
+// ==========================================
+// 5. منطق الواجهة (UI Logic)
+// ==========================================
+
+// الوضع الداكن
+function updateThemeIcon(theme) {
+    themeIcon.innerHTML = theme === 'dark' 
+        ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>' 
+        : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+}
+themeToggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('pt_theme', next);
+    updateThemeIcon(next);
+});
+
+// التنقل بين الصفحات
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        const targetView = item.getAttribute('data-view');
+        views.forEach(v => v.classList.remove('active'));
+        $(`view-${targetView}`).classList.add('active');
+    });
+});
+
+// اختيار المحرك
+engineBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        engineBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.engine = btn.getAttribute('data-engine');
+        
+        if (state.engine === 'ai') {
+            aiOptions.classList.remove('hidden');
+        } else {
+            aiOptions.classList.add('hidden');
+        }
+    });
+});
+
+// عدّاد الأحرف
 sourceText.addEventListener('input', () => {
     charCount.textContent = sourceText.value.length;
 });
+
+// لصق ومسح
+pasteBtn.addEventListener('click', async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        sourceText.value = text;
+        charCount.textContent = text.length;
+    } catch (e) {
+        showToast('تعذر الوصول إلى الحافظة', 'error');
+    }
+});
 clearBtn.addEventListener('click', () => {
     sourceText.value = '';
-    targetText.value = '';
     charCount.textContent = '0';
-    statusEl.textContent = '';
-});
-fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        sourceText.value = event.target.result;
-        charCount.textContent = sourceText.value.length;
-        showToast('تم استيراد الملف');
-    };
-    reader.readAsText(file);
-});
-copyBtn.addEventListener('click', () => {
-    if (!targetText.value) return;
-    navigator.clipboard.writeText(targetText.value);
-    showToast('تم النسخ!');
+    resultText.textContent = 'الترجمة ستظهر هنا...';
+    state.currentTranslation = '';
 });
 
-// 7. الترجمة الصوتية (الميكروفون)
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition;
-if (SpeechRecognition) {
-    recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    voiceBtn.addEventListener('click', () => {
-        if (voiceBtn.classList.contains('recording')) {
-            recognition.stop();
-            return;
-        }
-        recognition.lang = sourceLang.value === 'auto' ? 'ar-SA' : sourceLang.value;
-        recognition.start();
-        voiceBtn.classList.add('recording');
-        voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
-        statusEl.textContent = 'جاري الاستماع...';
-    });
-    recognition.onresult = (event) => {
-        sourceText.value += event.results[0][0].transcript + ' ';
-        charCount.textContent = sourceText.value.length;
-    };
-    recognition.onend = () => {
-        voiceBtn.classList.remove('recording');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        statusEl.textContent = '';
-    };
-} else {
-    voiceBtn.style.display = 'none';
-}
-
-// 8. الاستماع (Text to Speech) - تم الإصلاح هنا فقط
-function speak(text, lang) {
-    if (!text) return;
-    
-    // خريطة تحويل رموز اللغة إلى تنسيق SpeechSynthesis الصحيح
-    const langMap = {
-        'ar': 'ar-SA',
-        'en': 'en-US',
-        'fr': 'fr-FR',
-        'es': 'es-ES',
-        'de': 'de-DE',
-        'it': 'it-IT',
-        'pt': 'pt-PT',
-        'ru': 'ru-RU',
-        'zh': 'zh-CN',
-        'ja': 'ja-JP',
-        'ko': 'ko-KR',
-        'tr': 'tr-TR',
-        'hi': 'hi-IN',
-        'ur': 'ur-PK',
-        'fa': 'fa-IR',
-        'nl': 'nl-NL',
-        'pl': 'pl-PL',
-        'sv': 'sv-SE',
-        'el': 'el-GR',
-        'he': 'he-IL',
-        'th': 'th-TH',
-        'vi': 'vi-VN',
-        'id': 'id-ID'
-    };
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langMap[lang] || lang;
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    
-    // إيقاف أي تشغيل صوتي سابق قبل البدء
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-}
-
-speakSource.addEventListener('click', () => {
-    const lang = sourceLang.value === 'auto' ? 'ar' : sourceLang.value;
-    speak(sourceText.value, lang);
-});
-
-speakTarget.addEventListener('click', () => {
-    speak(targetText.value, targetLang.value);
-});
-
-// 9. دالة الترجمة (تدعم الذكاء الاصطناعي)
-async function doTranslate() {
-    const text = sourceText.value.trim();
-    if (!text) { showToast('اكتب نصاً أولاً'); return; }
-    let from = sourceLang.value;
-    const to = targetLang.value;
-    if (from === to) { showToast('اللغتان متطابقتان'); return; }
-    if (from === 'auto') from = 'ar';
-    statusEl.textContent = 'جاري الترجمة...';
-    statusEl.className = 'status';
-    translateBtn.disabled = true;
-    const isAI = aiToggle.checked;
-    translateBtn.innerHTML = isAI ? '<i class="fas fa-brain fa-spin"></i> جاري التفكير...' : '<i class="fas fa-spinner fa-spin"></i> جاري الترجمة...';
-    try {
-        let translatedText = "";
-        if (isAI) {
-            await new Promise(r => setTimeout(r, 1500));
-        }
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.responseData && data.responseData.translatedText) {
-            translatedText = data.responseData.translatedText;
-            if (isAI) {
-                translatedText = translatedText.trim();
-                if (!translatedText.endsWith('.') && !translatedText.endsWith('؟') && !translatedText.endsWith('!')) {
-                    translatedText += '.';
-                }
-            }
-            targetText.value = translatedText;
-            statusEl.textContent = isAI ? 'تمت الترجمة الذكية' : 'تمت الترجمة';
-            statusEl.classList.add('success');
-            saveToHistory(text, translatedText, from, to);
-        } else {
-            throw new Error('فشل');
-        }
-    } catch (error) {
-        statusEl.textContent = 'حدث خطأ';
-        statusEl.classList.add('error');
-    } finally {
-        translateBtn.disabled = false;
-        translateBtn.innerHTML = '<i class="fas fa-language"></i> ترجم الآن';
-    }
-}
-translateBtn.addEventListener('click', doTranslate);
-
-// 10. سجل الترجمات
-function saveToHistory(src, tgt, from, to) {
-    let history = JSON.parse(localStorage.getItem('translationHistory')) || [];
-    history.unshift({ src, tgt, from, to, date: new Date().toLocaleString('ar-EG') });
-    if (history.length > 20) history.pop();
-    localStorage.setItem('translationHistory', JSON.stringify(history));
-    renderHistory();
-}
-function renderHistory() {
-    const history = JSON.parse(localStorage.getItem('translationHistory')) || [];
-    if (history.length === 0) {
-        historyList.innerHTML = '<p class="empty-msg">لا توجد ترجمات سابقة.</p>';
+// تبديل اللغات
+swapBtn.addEventListener('click', () => {
+    if (sourceLang.value === 'auto') {
+        showToast('لا يمكن تبديل الاكتشاف التلقائي', 'error');
         return;
     }
-    historyList.innerHTML = history.map((item, index) => `<div class="history-item" onclick="loadHistoryItem(${index})"> <div class="h-langs">${languages[item.from] || item.from} ➔ ${languages[item.to] || item.to}</div> <div class="h-source">${item.src}</div> <div class="h-target">${item.tgt}</div> </div>`).join('');
-}
-function loadHistoryItem(index) {
-    const history = JSON.parse(localStorage.getItem('translationHistory')) || [];
-    const item = history[index];
-    if (item) {
-        sourceText.value = item.src;
-        targetText.value = item.tgt;
-        charCount.textContent = item.src.length;
-        historyModal.classList.remove('show');
-        showToast('تم استرجاع الترجمة');
+    const temp = sourceLang.value;
+    sourceLang.value = targetLang.value;
+    targetLang.value = temp;
+    
+    // تبديل النصوص إن وجدت
+    if (resultText.textContent !== 'الترجمة ستظهر هنا...') {
+        const tempText = sourceText.value;
+        sourceText.value = resultText.textContent;
+        resultText.textContent = tempText;
+        charCount.textContent = sourceText.value.length;
     }
-}
-clearHistoryBtn.addEventListener('click', () => {
-    localStorage.removeItem('translationHistory');
-    renderHistory();
-    showToast('تم مسح السجل');
 });
 
-historyBtn.addEventListener('click', () => { renderHistory(); historyModal.classList.add('show'); });
-settingsBtn.addEventListener('click', () => settingsModal.classList.add('show'));
-closeBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        historyModal.classList.remove('show');
-        settingsModal.classList.remove('show');
+// نافذة الإعدادات
+settingsBtn.addEventListener('click', () => openModal('settingsModal'));
+toggleKeyBtn.addEventListener('click', () => {
+    apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+});
+saveSettingsBtn.addEventListener('click', () => {
+    state.apiKey = apiKeyInput.value.trim();
+    state.endpoint = endpointInput.value.trim() || 'https://api.openai.com/v1';
+    localStorage.setItem('pt_apiKey', state.apiKey);
+    localStorage.setItem('pt_endpoint', state.endpoint);
+    showToast('تم حفظ الإعدادات بنجاح', 'success');
+    closeModal('settingsModal');
+});
+clearKeyBtn.addEventListener('click', () => {
+    if(confirm('هل أنت متأكد من حذف المفتاح؟')) {
+        state.apiKey = '';
+        apiKeyInput.value = '';
+        localStorage.removeItem('pt_apiKey');
+        showToast('تم حذف المفتاح');
+    }
+});
+testConnBtn.addEventListener('click', async () => {
+    const key = apiKeyInput.value.trim();
+    const ep = endpointInput.value.trim() || 'https://api.openai.com/v1';
+    if(!key) return showToast('أدخل مفتاح API أولاً', 'error');
+    
+    testConnBtn.textContent = 'جاري...';
+    try {
+        const res = await fetch(`${ep}/models`, {
+            headers: { 'Authorization': `Bearer ${key}` }
+        });
+        if(res.ok) showToast('الاتصال ناجح!', 'success');
+        else showToast('فشل الاتصال، تحقق من المفتاح', 'error');
+    } catch(e) {
+        showToast('خطأ في الشبكة أو CORS', 'error');
+    } finally {
+        testConnBtn.textContent = 'اختبار';
+    }
+});
+
+// نافذة اختيار النموذج
+modelSelectBtn.addEventListener('click', async () => {
+    if(!state.apiKey) {
+        showToast('يرجى إدخال مفتاح API في الإعدادات أولاً', 'error');
+        openModal('settingsModal');
+        return;
+    }
+    openModal('modelModal');
+    await fetchModels();
+});
+refreshModelsBtn.addEventListener('click', fetchModels);
+modelSearch.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = state.tempModels.filter(m => m.id.toLowerCase().includes(term));
+    renderModelList(filtered);
+});
+confirmModelBtn.addEventListener('click', () => {
+    if(state.selectedModelTemp) {
+        state.aiModel = state.selectedModelTemp;
+        currentModelName.textContent = state.aiModel;
+        currentModelName.title = state.aiModel;
+        closeModal('modelModal');
+        showToast('تم اختيار النموذج');
+    }
+});
+
+async function fetchModels() {
+    modelList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">جاري التحميل...</div>';
+    try {
+        const res = await fetch(`${state.endpoint}/models`, {
+            headers: { 'Authorization': `Bearer ${state.apiKey}` }
+        });
+        if(!res.ok) throw new Error('فشل الجلب');
+        const data = await res.json();
+        state.tempModels = data.data || [];
+        if(state.tempModels.length === 0) throw new Error('لا توجد نماذج');
+        renderModelList(state.tempModels);
+    } catch(e) {
+        modelList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">تعذر جلب النماذج. تحقق من الإعدادات.</div>';
+    }
+}
+function renderModelList(models) {
+    modelList.innerHTML = '';
+    models.forEach(m => {
+        const div = document.createElement('div');
+        div.className = `model-item ${m.id === state.selectedModelTemp ? 'selected' : ''}`;
+        div.innerHTML = `<span style="font-size:0.85rem; word-break:break-all;">${m.id}</span>`;
+        div.onclick = () => {
+            state.selectedModelTemp = m.id;
+            renderModelList(models);
+        };
+        modelList.appendChild(div);
     });
+}
+
+// نافذة نوع الترجمة
+typeSelectBtn.addEventListener('click', () => {
+    if(state.engine === 'normal') {
+        showToast('نوع الترجمة متاح فقط في وضع الذكاء الاصطناعي', 'error');
+        return;
+    }
+    openModal('typeModal');
+    state.selectedTypeTemp = state.aiType;
+    renderTypeCards();
 });
-window.addEventListener('click', (e) => {
-    if (e.target === historyModal) historyModal.classList.remove('show');
-    if (e.target === settingsModal) settingsModal.classList.remove('show');
+function renderTypeCards() {
+    typeGrid.innerHTML = '';
+    Object.keys(translationTypes).forEach(key => {
+        const type = translationTypes[key];
+        const div = document.createElement('div');
+        div.className = `type-card ${key === state.selectedTypeTemp ? 'selected' : ''}`;
+        div.innerHTML = `
+            <svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+            <div class="type-card-title">${type.title}</div>
+            <div class="type-card-desc">${type.desc}</div>
+        `;
+        div.onclick = () => {
+            state.selectedTypeTemp = key;
+            renderTypeCards();
+        };
+        typeGrid.appendChild(div);
+    });
+}
+confirmTypeBtn.addEventListener('click', () => {
+    state.aiType = state.selectedTypeTemp;
+    currentTypeName.textContent = translationTypes[state.aiType].title;
+    closeModal('typeModal');
 });
 
-// 11. وضع تجربة المستخدم (UX Mode)
-const uxMode = localStorage.getItem('uxMode') === 'true';
-uxModeToggle.checked = uxMode;
-uxModeToggle.addEventListener('change', () => {
-    localStorage.setItem('uxMode', uxModeToggle.checked);
-    if (uxModeToggle.checked) {
-        showToast('تم تفعيل وضع تجربة المستخدم: مرحباً بك! جرب الترجمة الصوتية أو الذكاء الاصطناعي.');
-    } else {
-        showToast('تم إيقاف وضع تجربة المستخدم.');
+// ==========================================
+// 6. منطق الترجمة (Translation Logic)
+// ==========================================
+
+translateBtn.addEventListener('click', async () => {
+    const text = sourceText.value.trim();
+    if (!text) return showToast('يرجى إدخال نص للترجمة', 'error');
+
+    if (state.engine === 'ai' && !state.apiKey) {
+        showToast('يرجى إدخال مفتاح API أولاً', 'error');
+        openModal('settingsModal');
+        return;
+    }
+    if (state.engine === 'ai' && !state.aiModel) {
+        showToast('يرجى اختيار نموذج الذكاء الاصطناعي أولاً', 'error');
+        openModal('modelModal');
+        return;
+    }
+
+    // حالة التحميل
+    translateBtn.classList.add('loading');
+    const originalBtnHtml = translateBtn.innerHTML;
+    translateBtn.innerHTML = '<div class="spinner"></div> جاري الترجمة...';
+    resultText.textContent = '...';
+
+    try {
+        let translated = '';
+        if (state.engine === 'normal') {
+            translated = await translateNormal(text, sourceLang.value, targetLang.value);
+        } else {
+            translated = await translateAI(text, sourceLang.value, targetLang.value);
+        }
+
+        resultText.textContent = translated;
+        state.currentTranslation = translated;
+        
+        // حفظ في السجل
+        saveToHistory(text, translated);
+
+    } catch (error) {
+        console.error(error);
+        resultText.textContent = 'عذراً، حدث خطأ أثناء الترجمة.';
+        showToast(error.message || 'فشلت الترجمة', 'error');
+    } finally {
+        translateBtn.classList.remove('loading');
+        translateBtn.innerHTML = originalBtnHtml;
     }
 });
-if (uxMode) {
-    setTimeout(() => {
-        showToast('👋 مرحباً بك في LinguaAI! جرب تفعيل "الترجمة الذكية" للحصول على نتائج أفضل.');
-    }, 1500);
+
+// الترجمة العادية (MyMemory API)
+async function translateNormal(text, from, to) {
+    const src = from === 'auto' ? 'en' : from; // MyMemory يتطلب لغة مصدر
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${src}|${to}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('فشل الاتصال بخادم الترجمة');
+    const data = await res.json();
+    
+    if (data.responseData && data.responseData.translatedText) {
+        // فك ترميز HTML
+        const txt = document.createElement('textarea');
+        txt.innerHTML = data.responseData.translatedText;
+        return txt.value;
+    }
+    throw new Error('تعذر الحصول على ترجمة');
 }
 
-// 12. الإشعارات
-let toastTimer;
-function showToast(msg) {
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+// الترجمة بالذكاء الاصطناعي (OpenAI Compatible)
+async function translateAI(text, from, to) {
+    const langName = (code) => (languages.find(l => l.code === code) || {}).name || code;
+    const prompt = translationTypes[state.aiType].prompt;
+    
+    const systemMsg = `You are a professional translator. ${prompt} Translate from ${from === 'auto' ? 'detected language' : langName(from)} to ${langName(to)}. Return ONLY the translated text without any explanations, quotes, or extra text.`;
+
+    const res = await fetch(`${state.endpoint}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.apiKey}`
+        },
+        body: JSON.stringify({
+            model: state.aiModel,
+            messages: [
+                { role: 'system', content: systemMsg },
+                { role: 'user', content: text }
+            ],
+            temperature: 0.3
+        })
+    });
+
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error?.message || 'خطأ في الاتصال بمزود الذكاء الاصطناعي');
+    }
+
+    const data = await res.json();
+    return data.choices[0].message.content.trim();
 }
+
+// ==========================================
+// 7. أدوات النتيجة (Result Tools)
+// ==========================================
+
+// السماع (TTS)
+ttsBtn.addEventListener('click', () => {
+    const text = state.currentTranslation || resultText.textContent;
+    if (!text || text === 'الترجمة ستظهر هنا...') return showToast('لا يوجد نص لسماعه', 'error');
+
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const targetCode = targetLang.value;
+    utterance.lang = targetCode === 'ar' ? 'ar-SA' : targetCode;
+    utterance.rate = 1.1; // سرعة واضحة
+    utterance.pitch = 1;
+    
+    window.speechSynthesis.speak(utterance);
+    showToast('جاري النطق...', 'success');
+});
+
+// النسخ
+copyBtn.addEventListener('click', async () => {
+    if (!state.currentTranslation) return showToast('لا يوجد نص لنسخه', 'error');
+    try {
+        await navigator.clipboard.writeText(state.currentTranslation);
+        showToast('تم النسخ بنجاح', 'success');
+    } catch (e) {
+        showToast('فشل النسخ', 'error');
+    }
+});
+
+// المفضلة
+favBtn.addEventListener('click', () => {
+    if (!state.currentTranslation) return showToast('لا يوجد نص للحفظ', 'error');
+    
+    const isFav = state.favorites.some(f => f.text === state.currentTranslation);
+    if (isFav) {
+        showToast('موجود بالفعل في المفضلة');
+        return;
+    }
+
+    state.favorites.unshift({
+        id: Date.now(),
+        original: sourceText.value,
+        text: state.currentTranslation,
+        from: sourceLang.value,
+        to: targetLang.value
+    });
+    localStorage.setItem('pt_favorites', JSON.stringify(state.favorites));
+    favBtn.classList.add('fav-active');
+    showToast('تمت الإضافة للمفضلة', 'success');
+    renderFavorites();
+    setTimeout(() => favBtn.classList.remove('fav-active'), 1000);
+});
+
+// المشاركة
+shareBtn.addEventListener('click', async () => {
+    if (!state.currentTranslation) return showToast('لا يوجد نص لمشاركته', 'error');
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'ترجمة',
+                text: `${sourceText.value}\n\n➡️\n\n${state.currentTranslation}`
+            });
+        } catch (e) {
+            console.log('فشلت المشاركة');
+        }
+    } else {
+        showToast('متصفحك لا يدعم المشاركة المباشرة', 'error');
+    }
+});
+
+// ==========================================
+// 8. السجل والمفضلة (History & Favorites)
+// ==========================================
+
+function saveToHistory(original, translated) {
+    state.history.unshift({
+        id: Date.now(),
+        original,
+        translated,
+        from: sourceLang.value,
+        to: targetLang.value,
+        date: new Date().toLocaleString('ar-EG')
+    });
+    if (state.history.length > 50) state.history.pop(); // حد أقصى 50
+    localStorage.setItem('pt_history', JSON.stringify(state.history));
+    renderHistory();
+}
+
+function renderHistory() {
+    const list = $('historyList');
+    if (state.history.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">السجل فارغ</div>';
+        return;
+    }
+    list.innerHTML = state.history.map(item => `
+        <div class="history-item">
+            <div class="history-text">${item.translated}</div>
+            <div class="history-sub">${item.original}</div>
+            <div class="history-actions">
+                <button class="tool-btn" onclick="copyText('${item.translated.replace(/'/g, "\\'")}')">نسخ</button>
+                <button class="tool-btn" onclick="deleteHistory(${item.id})" style="color:var(--danger)">حذف</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderFavorites() {
+    const list = $('favoritesList');
+    if (state.favorites.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">المفضلة فارغة</div>';
+        return;
+    }
+    list.innerHTML = state.favorites.map(item => `
+        <div class="history-item">
+            <div class="history-text">${item.text}</div>
+            <div class="history-sub">${item.original}</div>
+            <div class="history-actions">
+                <button class="tool-btn" onclick="copyText('${item.text.replace(/'/g, "\\'")}')">نسخ</button>
+                <button class="tool-btn" onclick="deleteFav(${item.id})" style="color:var(--danger)">حذف</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// دوال مساعدة تُستدعى من HTML
+window.copyText = (text) => {
+    navigator.clipboard.writeText(text);
+    showToast('تم النسخ', 'success');
+};
+window.deleteHistory = (id) => {
+    state.history = state.history.filter(i => i.id !== id);
+    localStorage.setItem('pt_history', JSON.stringify(state.history));
+    renderHistory();
+};
+window.deleteFav = (id) => {
+    state.favorites = state.favorites.filter(i => i.id !== id);
+    localStorage.setItem('pt_favorites', JSON.stringify(state.favorites));
+    renderFavorites();
+};
+
+// تشغيل التهيئة
+init();
