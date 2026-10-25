@@ -1,92 +1,255 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مترجم احترافي | Professional Translator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ترجمة احترافية | Pro Translate</title>
+    
+    <!-- خط Tajawal -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- ملف التنسيقات -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- شريط الأدوات العلوي -->
-    <header class="toolbar">
-        <!-- 1. زر الوضع الداكن -->
-        <button id="themeToggle" class="icon-btn" title="تبديل الوضع الداكن">🌙</button>
-        
-        <!-- 2. زر إعدادات API -->
-        <button id="apiBtn" class="icon-btn" title="إعداد مفتاح API">🔑</button>
-        
-        <!-- 7. زر الإعدادات (الإصدار) -->
-        <button id="settingsBtn" class="icon-btn" title="الإعدادات">⚙️</button>
-        
-        <!-- 8. زر مسح السجل -->
-        <button id="clearHistoryBtn" class="text-btn" title="مسح سجل الترجمة">🗑️ مسح السجل</button>
+    <!-- ================= الهيدر ================= -->
+    <header class="app-header">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Pro Translate
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="themeToggle" title="الوضع الداكن">
+                <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <button class="icon-btn" id="settingsBtn" title="الإعدادات">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+        </div>
     </header>
 
-    <!-- منطقة الترجمة الرئيسية -->
-    <main class="container">
-        <!-- 3. تبديل اللغات -->
-        <div class="lang-selector">
-            <select id="sourceLang">
-                <option value="auto">كشف تلقائي</option>
-                <!-- سيتم تعبئتها بواسطة JavaScript (أكثر من 100 لغة) -->
-            </select>
-            <button id="swapLang" class="swap-btn" title="تبديل اللغات">⇄</button>
-            <select id="targetLang">
-                <option value="ar">العربية</option>
-            </select>
+    <!-- ================= المحتوى الرئيسي ================= -->
+    <main class="main-content">
+        
+        <!-- قسم الترجمة -->
+        <div id="view-translate" class="view-section active">
+            
+            <!-- 1. شريط التحكم -->
+            <div class="controls-container">
+                <!-- اختيار المحرك -->
+                <div class="engine-selector">
+                    <button class="engine-btn active" data-engine="normal">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+                        ترجمة عادية
+                    </button>
+                    <button class="engine-btn" data-engine="ai">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        ذكاء اصطناعي
+                    </button>
+                </div>
+
+                <!-- خيارات الذكاء الاصطناعي -->
+                <div class="ai-options hidden" id="aiOptions">
+                    <button class="ai-option-btn" id="modelSelectBtn">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        <span class="btn-text" id="currentModelName">اختر النموذج</span>
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                    <button class="ai-option-btn" id="typeSelectBtn">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <span class="btn-text" id="currentTypeName">ترجمة طبيعية</span>
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. بطاقة الترجمة -->
+            <div class="translation-card">
+                <!-- شريط اللغات -->
+                <div class="lang-bar">
+                    <div class="lang-select">
+                        <select id="sourceLang">
+                            <option value="auto">اكتشاف تلقائي</option>
+                        </select>
+                    </div>
+                    <button class="swap-btn" id="swapBtn">
+                        <svg viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+                    </button>
+                    <div class="lang-select">
+                        <select id="targetLang">
+                            <option value="ar">العربية</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- الإدخال -->
+                <div class="text-area-container">
+                    <textarea id="sourceText" placeholder="اكتب النص هنا..." maxlength="5000"></textarea>
+                    <div class="text-area-tools">
+                        <div class="tool-group">
+                            <button class="tool-btn" id="pasteBtn">
+                                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                                لصق
+                            </button>
+                            <button class="tool-btn" id="clearBtn">
+                                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                مسح
+                            </button>
+                        </div>
+                        <span class="char-count"><span id="charCount">0</span> / 5000</span>
+                    </div>
+                </div>
+
+                <!-- النتيجة -->
+                <div class="result-container">
+                    <div class="result-text" id="resultText">الترجمة ستظهر هنا...</div>
+                    <div class="result-tools">
+                        <button class="tts-btn" id="ttsBtn">
+                            <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                            سماع الترجمة
+                        </button>
+                        <button class="result-action-btn" id="copyBtn" title="نسخ">
+                            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        </button>
+                        <button class="result-action-btn" id="favBtn" title="حفظ في المفضلة">
+                            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        </button>
+                        <button class="result-action-btn" id="shareBtn" title="مشاركة">
+                            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- زر الترجمة الرئيسي -->
+            <button class="main-translate-btn" id="translateBtn">
+                <svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+                ترجم الآن
+            </button>
         </div>
 
-        <!-- صندوق الإدخال -->
-        <div class="input-area">
-            <textarea id="inputText" placeholder="أدخل النص هنا..."></textarea>
-            
-            <!-- 4. زر استيراد الملفات + 5. زر الترجمة الصوتية -->
-            <div class="action-bar">
-                <label for="fileInput" class="file-label" title="استيراد ملف">📁 استيراد ملف</label>
-                <input type="file" id="fileInput" accept=".txt,.pdf,.docx" hidden>
-                
-                <button id="voiceBtn" class="mic-btn" title="الترجمة الصوتية">🎤 صوت</button>
+        <!-- قسم السجل -->
+        <div id="view-history" class="view-section">
+            <h2 style="font-size:1.2rem; margin-bottom:8px;">سجل الترجمات</h2>
+            <div id="historyList" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- سيتم تعبئتها عبر JS -->
             </div>
         </div>
 
-        <!-- نتيجة الترجمة -->
-        <div class="output-area">
-            <textarea id="outputText" readonly placeholder="الترجمة تظهر هنا..."></textarea>
+        <!-- قسم المفضلة -->
+        <div id="view-favorites" class="view-section">
+            <h2 style="font-size:1.2rem; margin-bottom:8px;">المفضلة</h2>
+            <div id="favoritesList" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- سيتم تعبئتها عبر JS -->
+            </div>
         </div>
 
-        <!-- زر الترجمة الرئيسي -->
-        <button id="translateBtn" class="primary-btn">ترجم الآن</button>
-
-        <!-- منطقة سجل الترجمة -->
-        <div class="history-section">
-            <h3>سجل الترجمة</h3>
-            <ul id="historyList"></ul>
-        </div>
     </main>
 
-    <!-- 7. نافذة الإعدادات (تحتوي على رقم الإصدار) -->
-    <div id="settingsModal" class="modal hidden">
+    <!-- ================= شريط التنقل السفلي ================= -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-view="translate">
+            <svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+            الترجمة
+        </button>
+        <button class="nav-item" data-view="history">
+            <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4m-.5-4v-4m0 4h4"/></svg>
+            السجل
+        </button>
+        <button class="nav-item" data-view="favorites">
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            المفضلة
+        </button>
+    </nav>
+
+    <!-- ================= النوافذ المنبثقة (Modals) ================= -->
+
+    <!-- 1. نافذة الإعدادات -->
+    <div class="modal-overlay" id="settingsModal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>إعدادات النظام</h2>
-            <p>رقم الإصدار: <strong id="versionDisplay">v1.0.0</strong></p>
-            <hr>
-            <p>معلومات المطور: Professional Translator</p>
-            <p>© 2026 جميع الحقوق محفوظة</p>
+            <div class="modal-header">
+                <span class="modal-title">الإعدادات</span>
+                <button class="close-btn" data-close="settingsModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>مفتاح API (للذكاء الاصطناعي)</label>
+                    <div class="input-with-btn">
+                        <input type="password" id="apiKeyInput" placeholder="sk-...">
+                        <button class="btn-secondary" id="toggleKeyBtn">
+                            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>عنوان Endpoint الأساسي</label>
+                    <input type="text" id="endpointInput" placeholder="https://api.openai.com/v1">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-primary" id="saveSettingsBtn">حفظ الإعدادات</button>
+                    <button class="btn-secondary" id="testConnBtn">اختبار</button>
+                </div>
+                <button class="btn-danger" id="clearKeyBtn">حذف المفتاح</button>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">
+                    تنبيه: يتم حفظ الإعدادات محلياً في متصفحك (LocalStorage) ولا توفر حماية قصوى للمفاتيح.
+                </p>
+            </div>
         </div>
     </div>
 
-    <!-- نافذة إعدادات API (منبثقة) -->
-    <div id="apiModal" class="modal hidden">
+    <!-- 2. نافذة اختيار النموذج -->
+    <div class="modal-overlay" id="modelModal">
         <div class="modal-content">
-            <span class="close-btn api-close">&times;</span>
-            <h2>إعداد مفتاح API</h2>
-            <input type="password" id="apiKeyInput" placeholder="أدخل مفتاح Google Translate API">
-            <button id="saveApiBtn" class="primary-btn">حفظ المفتاح</button>
+            <div class="modal-header">
+                <span class="modal-title">اختيار النموذج</span>
+                <button class="close-btn" data-close="modelModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <input type="text" id="modelSearch" placeholder="ابحث عن نموذج...">
+                    <button class="btn-secondary" id="refreshModelsBtn">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                </div>
+                <div class="model-list" id="modelList">
+                    <!-- سيتم تعبئتها -->
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="btn-primary" id="confirmModelBtn">تأكيد</button>
+                    <button class="btn-secondary" data-close="modelModal">إلغاء</button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- 3. نافذة نوع الترجمة -->
+    <div class="modal-overlay" id="typeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">نوع الترجمة</span>
+                <button class="close-btn" data-close="typeModal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="type-grid" id="typeGrid">
+                    <!-- سيتم تعبئتها -->
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="btn-primary" id="confirmTypeBtn">تأكيد</button>
+                    <button class="btn-secondary" data-close="typeModal">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- التنبيهات -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ملف الجافاسكريبت -->
     <script src="script.js"></script>
 </body>
 </html>
