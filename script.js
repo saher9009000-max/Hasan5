@@ -1,31 +1,3 @@
-/* =====================================================================
-   ترجمة تركواز — app.js
-   ---------------------------------------------------------------------
-   README (نسخة مختصرة)
-   ---------------------------------------------------------------------
-   1. ضع الملفات الثلاثة (index.html، styles.css، app.js) في مجلد واحد.
-   2. افتح index.html مباشرة في المتصفح أو ارفعه على أي استضافة ثابتة
-      (GitHub Pages، Netlify، nginx…).
-   3. بدون نقطة نهاية API يعمل التطبيق في «الوضع التجريبي» اعتمادًا على
-      قاموس صغير مدمج — مفيد لمعاينة الواجهة فقط.
-   4. لربط خدمة حقيقية:
-      • الصق مفتاح API في حقل «مفتاح API».
-      • الصق عنوان النقطة في حقل «عنوان نقطة النهاية».
-      يرسل التطبيق طلب POST بصيغة JSON:
-        { q, source, target, model }
-      مع ترويسة  Authorization: Bearer <apiKey>
-      ويقرأ الترجمة من أول حقل موجود في الاستجابة:
-        translatedText · translation · output · result ·
-        data.translatedText · data.translation
-      (أو يعيد النص الخام إذا لم تكن الاستجابة JSON).
-   5. كل شيء يُحفظ في localStorage:
-      مفتاح API · النقطة · اللغات · النموذج · الترجمة الصوتية ·
-      الوضع الليلي · لوحة الألوان · سجل الترجمات (بحد أقصى 50 عنصرًا).
-   6. اختصارات لوحة المفاتيح:
-      Ctrl/⌘ + Enter  → الترجمة
-      Esc             → إغلاق القوائم والنوافذ.
-   ===================================================================== */
-
 'use strict';
 
 /* =====================================================================
@@ -117,7 +89,6 @@ const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-/* غلاف آمن لـ localStorage — الوضع الخاص أو تجاوز الحصة قد يرمي استثناءً */
 const store = {
   get(key, fallback = null) {
     try {
@@ -138,8 +109,6 @@ const debounce = (fn, ms = 220) => {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 };
-
-/* ---------------- رياضيات الألوان (لضمان تباين وصولي) ---------------- */
 
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
@@ -167,7 +136,6 @@ function rgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/* الإنارة النسبية وفق WCAG */
 function luminance(hex) {
   const { r, g, b } = hexToRgb(hex);
   const ch = c => {
@@ -183,7 +151,6 @@ function contrast(hexA, hexB) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/* اختيار لون أمامي مقروء لخلفية معيّنة */
 function bestOn(bg) {
   const dark  = '#042f2e';
   const light = '#ffffff';
@@ -206,7 +173,6 @@ const state = {
   history:  []
 };
 
-/* أسماء الملفات المستوردة للنص الحالي (في الذاكرة فقط) */
 let importedFiles = [];
 
 /* =====================================================================
@@ -274,8 +240,6 @@ const el = {
    5. السمة والألوان
    ===================================================================== */
 
-/* دفع اللوحة إلى خصائص CSS واستخلاص لون نص متباين تلقائيًا.
-   تنفَّذ عند الإقلاع، وعند تغيير اللوحة، وعند تبديل الوضع الليلي. */
 function applyColors(colors) {
   const { primary, secondary, bg } = colors;
   const dark = state.dark;
@@ -284,7 +248,6 @@ function applyColors(colors) {
   const onPrimary   = bestOn(primary);
   const onSecondary = bestOn(secondary);
 
-  /* السطح: خطوة ناعمة مبتعدة عن الخلفية */
   const surface = dark ? mix(bg, '#ffffff', 0.07) : mix(bg, '#ffffff', 0.62);
 
   const muted        = rgba(text, 0.66);
@@ -305,7 +268,6 @@ function applyColors(colors) {
   s.setProperty('--on-secondary', onSecondary);
   s.setProperty('--ring', ring);
 
-  /* مزامنة لون شريط المتصفح (theme-color) */
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', primary);
 }
@@ -371,7 +333,6 @@ function loadSettings() {
   const hist = store.get(STORE.history, []);
   state.history = Array.isArray(hist) ? hist.slice(0, 50) : [];
 
-  /* مزامنة عناصر النموذج */
   el.apiKey.value = state.apiKey;
   el.apiEndpoint.value = state.endpoint;
   el.sourceLang.value = state.source;
@@ -418,14 +379,12 @@ el.menuBtn.addEventListener('click', (e) => {
   el.menu.hidden ? openMenu() : closeMenu();
 });
 
-/* إغلاق عند النقر خارج القائمة */
 document.addEventListener('click', (e) => {
   if (el.menu.hidden) return;
   if (el.menu.contains(e.target) || el.menuBtn.contains(e.target)) return;
   closeMenu();
 });
 
-/* إغلاق بمفتاح Escape */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !el.menu.hidden) {
     closeMenu();
@@ -433,16 +392,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* عناصر القائمة */
 el.menuColors.addEventListener('click', () => { closeMenu(); openColorDialog(); });
 el.menuHistory.addEventListener('click', () => { closeMenu(); showHistory(true); });
 el.menuClearHistory.addEventListener('click', () => { closeMenu(); clearHistory(); });
 
-/* مفتاح الوضع الليلي */
 el.darkSwitch.addEventListener('change', () => {
   state.dark = el.darkSwitch.checked;
-
-  /* تبديل الخلفية الافتراضية فقط كي لا نفقد لوحة المستخدم */
   const bg = state.colors.bg.toLowerCase();
   if (state.dark && bg === LIGHT_BG) state.colors.bg = DARK_BG;
   if (!state.dark && bg === DARK_BG) state.colors.bg = LIGHT_BG;
@@ -468,7 +423,6 @@ el.apiEndpoint.addEventListener('input', debounce(() => {
   saveSettings();
 }, 250));
 
-/* إظهار / إخفاء المفتاح */
 el.toggleKeyBtn.addEventListener('click', () => {
   const visible = el.apiKey.type === 'text';
   el.apiKey.type = visible ? 'password' : 'text';
@@ -496,7 +450,6 @@ el.modelSelect.addEventListener('change', () => {
   saveSettings();
 });
 
-/* تبديل اللغتين. عند وجود «كشف تلقائي» نستخدم الإنجليزية كافتراضي */
 el.swapBtn.addEventListener('click', () => {
   const from = state.source === 'auto' ? 'en' : state.source;
   const to = state.target;
@@ -550,7 +503,7 @@ el.speakBtn.addEventListener('click', () => {
    12. استيراد الملفات
    ===================================================================== */
 
-const MAX_FILE_BYTES = 1.5 * 1024 * 1024; // 1.5 ميغابايت لكل ملف
+const MAX_FILE_BYTES = 1.5 * 1024 * 1024;
 
 el.importBtn.addEventListener('click', () => el.fileInput.click());
 
@@ -569,7 +522,6 @@ el.fileInput.addEventListener('change', async () => {
       }
       const text = await file.text();
 
-      /* فحص سريع للثنائيات: وجود NUL في أول 1000 حرف */
       if (text.slice(0, 1000).includes('\u0000')) {
         toast(`"${file.name}" يبدو ملفًا ثنائيًا وتم تجاهله.`, 'error');
         continue;
@@ -589,7 +541,7 @@ el.fileInput.addEventListener('change', async () => {
     }
   }
 
-  el.fileInput.value = ''; // للسماح بإعادة اختيار الملف نفسه
+  el.fileInput.value = '';
 
   if (!parts.length) return;
 
@@ -638,11 +590,6 @@ el.clearInputBtn.addEventListener('click', () => {
    14. الترجمة
    ===================================================================== */
 
-/**
- * إرسال الطلب إلى نقطة النهاية المُهيّأة.
- * العقد متساهل بقصدٍ: خدمات كثيرة تختلف قليلًا في شكل الاستجابة،
- * لذلك نجرب الأشكال الشائعة بالترتيب.
- */
 async function callApi({ endpoint, apiKey, text, source, target, model }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30_000);
@@ -679,7 +626,7 @@ async function callApi({ endpoint, apiKey, text, source, target, model }) {
 
   let data;
   try { data = JSON.parse(raw); }
-  catch { return raw.trim(); } // API بنص عادي
+  catch { return raw.trim(); }
 
   const candidate =
     data.translatedText ??
@@ -694,12 +641,10 @@ async function callApi({ endpoint, apiKey, text, source, target, model }) {
   throw new Error('تعذّر العثور على ترجمة في استجابة الـ API.');
 }
 
-/* كشف اتجاه اللغة في الوضع التجريبي (عربي أو إنجليزي) */
 function detectLang(text) {
   return /[\u0600-\u06FF]/.test(text) ? 'ar' : 'en';
 }
 
-/** الوضع التجريبي: استبدال كلمة بكلمة عبر القاموس المدمج. */
 function demoTranslate(text, target, source) {
   const src = source === 'auto' ? detectLang(text) : source;
   const key = `${src}->${target}`;
@@ -757,7 +702,7 @@ async function doTranslate() {
       });
       setFeedback('تمت الترجمة عبر الـ API الخاص بك.', 'success');
     } else {
-      await sleep(420); // إبقاء المؤشر ظاهرًا لمدة معقولة
+      await sleep(420);
       translated = demoTranslate(text, state.target, state.source);
       setFeedback('وضع تجريبي — أضف النقطة والمفتاح لترجمة حقيقية.', 'success');
     }
@@ -794,7 +739,6 @@ async function doTranslate() {
 
 el.translateBtn.addEventListener('click', doTranslate);
 
-/* Ctrl / ⌘ + Enter للترجمة السريعة */
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
@@ -905,7 +849,6 @@ function truncate(str, n) {
   return clean.length > n ? `${clean.slice(0, n - 1)}…` : clean;
 }
 
-/* تفويض أحداث أزرار السجل */
 el.historyList.addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
@@ -994,7 +937,6 @@ function openColorDialog() {
 
 el.colorsBtn.addEventListener('click', openColorDialog);
 
-/* معاينة حيّة أثناء سحب المنتقي */
 function onColorInput() {
   state.colors = {
     primary:   el.colorPrimary.value,
@@ -1009,7 +951,6 @@ el.colorPrimary.addEventListener('input', onColorInput);
 el.colorSecondary.addEventListener('input', onColorInput);
 el.colorBg.addEventListener('input', onColorInput);
 
-/* التثبيت عند إغلاق النافذة (تم / Esc / ✕) */
 el.colorDialog.addEventListener('close', () => {
   saveSettings();
   applyColors(state.colors);
@@ -1029,7 +970,6 @@ el.resetColorsBtn.addEventListener('click', () => {
   toast('أُعيدت اللوحة إلى الافتراضية.', 'info', 1800);
 });
 
-/* تقرير التباين داخل النافذة */
 function updateContrastReport() {
   const rows = [
     ['نص الزر على الأساسي',   contrast(state.colors.primary, bestOn(state.colors.primary))],
@@ -1067,7 +1007,6 @@ function init() {
   renderHistory();
   setStatus('idle', 'جاهز');
 
-  /* تلميح لطيف أول مرة */
   if (!state.apiKey && !state.endpoint) {
     setTimeout(() => {
       toast('نصيحة: أضف مفتاح API ونقطة النهاية — أو جرّب الوضع التجريبي مباشرةً.', 'info', 5200);
