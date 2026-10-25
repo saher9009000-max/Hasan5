@@ -1,46 +1,22 @@
-/* ══════════════════════════════════════════════════
-   LinguaHub Mobile — v1.0.0
-   ══════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   Prompt Translation Studio — v1.0.0
+   ══════════════════════════════════════════════════════ */
 
 const APP_VERSION = 'v1.0.0 (Build 100)';
-const API_URL = 'https://api.mymemory.translated.net/get';
 
 // ─── الحالة ───
 const state = {
-  sourceLang: 'ar',
-  targetLang: 'en',
-  theme: localStorage.getItem('lh_theme') || 'system',
-  color: localStorage.getItem('lh_color') || '#2563EB',
-  isListening: false,
+  theme: localStorage.getItem('pts_theme') || 'system',
+  currentStage: '1',
 };
 
-// ─── عناصر DOM ───
+// ─── عناصر ───
 const $ = (id) => document.getElementById(id);
-const elements = {
-  sourceLang: $('sourceLang'),
-  targetLang: $('targetLang'),
-  sourceText: $('sourceText'),
-  targetText: $('targetText'),
-  charCount: $('charCount'),
-  matchScore: $('matchScore'),
-  translateBtn: $('translateBtn'),
-  swapBtn: $('swapBtn'),
-  clearBtn: $('clearBtn'),
-  micBtn: $('micBtn'),
-  ocrBtn: $('ocrBtn'),
-  speakBtn: $('speakBtn'),
-  copyBtn: $('copyBtn'),
-  imageInput: $('imageInput'),
-  themeToggle: $('themeToggle'),
-  themeModes: $('themeModes'),
-  colorGrid: $('colorGrid'),
-  toast: $('toast'),
-  contactForm: $('contactForm'),
-};
+const toast = $('toast');
 
-// ══════════════════════════════════════════════════
-// 1) السمة والألوان
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// 1) السمة
+// ══════════════════════════════════════════════════════
 function getEffectiveTheme() {
   if (state.theme === 'system') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -51,198 +27,316 @@ function getEffectiveTheme() {
 function applyTheme() {
   const effective = getEffectiveTheme();
   document.documentElement.setAttribute('data-theme', effective);
-  document.documentElement.style.setProperty('--primary', state.color);
-  document.querySelector('meta[name="theme-color"]').setAttribute('content', state.color);
-
-  // أيقونة زر التبديل
-  elements.themeToggle.textContent = effective === 'dark' ? '☀️' : '🌙';
-
-  // تفعيل الأزرار المطابقة
-  document.querySelectorAll('#themeModes button').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.mode === state.theme);
-  });
-
-  // تفعيل نقطة اللون
-  document.querySelectorAll('.color-dot').forEach((dot) => {
-    dot.classList.toggle('active', dot.dataset.color.toLowerCase() === state.color.toLowerCase());
-  });
+  const btn = $('themeToggle');
+  if (btn) btn.textContent = effective === 'dark' ? '☀️' : '🌙';
 }
 
 function setTheme(mode) {
   state.theme = mode;
-  localStorage.setItem('lh_theme', mode);
+  localStorage.setItem('pts_theme', mode);
   applyTheme();
 }
 
-function setColor(color) {
-  state.color = color;
-  localStorage.setItem('lh_color', color);
-  applyTheme();
-}
+window.matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', () => {
+    if (state.theme === 'system') applyTheme();
+  });
 
-// استمع لتغيير الوضع في النظام
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (state.theme === 'system') applyTheme();
-});
-
-// ══════════════════════════════════════════════════
-// 2) التنقل بين الشاشات
-// ══════════════════════════════════════════════════
-function switchScreen(tab) {
-  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
-  document.getElementById(`screen-${tab}`).classList.add('active');
-  document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
+// ══════════════════════════════════════════════════════
+// 2) التنقل بين المراحل
+// ══════════════════════════════════════════════════════
+function switchStage(num) {
+  state.currentStage = num;
+  document.querySelectorAll('.stage').forEach((s) => {
+    s.classList.toggle('active', s.dataset.stage === num);
+  });
+  document.querySelectorAll('.stage-tab').forEach((t) => {
+    t.classList.toggle('active', t.dataset.stage === num);
+  });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ══════════════════════════════════════════════════
-// 3) الترجمة
-// ══════════════════════════════════════════════════
-async function translate() {
-  const text = elements.sourceText.value.trim();
-  if (!text) {
-    showToast('أدخل نصًا للترجمة أولاً');
-    return;
-  }
-  if (state.sourceLang === state.targetLang) {
-    showToast('اختر لغتين مختلفتين');
-    return;
-  }
-
-  elements.translateBtn.disabled = true;
-  elements.translateBtn.classList.add('loading');
-  elements.targetText.textContent = '';
-
+// ══════════════════════════════════════════════════════
+// 3) اللصق والنسخ والمسح
+// ══════════════════════════════════════════════════════
+async function pasteToElement(id) {
+  const el = $(id);
+  if (!el) return;
   try {
-    const url = `${API_URL}?q=${encodeURIComponent(text)}&langpair=${state.sourceLang}|${state.targetLang}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('network');
-    const data = await res.json();
-
-    const translated = data?.responseData?.translatedText || '';
-    if (!translated) throw new Error('empty');
-
-    elements.targetText.textContent = translated;
-    elements.matchScore.textContent = data?.responseData?.match
-      ? `${(data.responseData.match * 100).toFixed(1)}%`
-      : '—';
-  } catch (err) {
-    elements.targetText.textContent = '⚠️ تعذر الاتصال بخدمة الترجمة. تحقق من الإنترنت.';
-    showToast('فشلت الترجمة');
-  } finally {
-    elements.translateBtn.disabled = false;
-    elements.translateBtn.classList.remove('loading');
-  }
-}
-
-// ══════════════════════════════════════════════════
-// 4) تبديل اللغات
-// ══════════════════════════════════════════════════
-function swapLanguages() {
-  [state.sourceLang, state.targetLang] = [state.targetLang, state.sourceLang];
-  elements.sourceLang.value = state.sourceLang;
-  elements.targetLang.value = state.targetLang;
-
-  // تبديل النص
-  const currentResult = elements.targetText.textContent;
-  if (currentResult && currentResult !== 'الترجمة ستظهر هنا' && !currentResult.startsWith('⚠️')) {
-    elements.sourceText.value = currentResult;
-    elements.targetText.textContent = 'الترجمة ستظهر هنا';
-  }
-  updateTextDirection();
-  updateCharCount();
-}
-
-function updateTextDirection() {
-  const dir = ['ar', 'he', 'fa'].includes(state.sourceLang) ? 'rtl' : 'ltr';
-  elements.sourceText.style.direction = dir;
-  elements.sourceText.style.textAlign = dir === 'rtl' ? 'right' : 'left';
-
-  const targetDir = ['ar', 'he', 'fa'].includes(state.targetLang) ? 'rtl' : 'ltr';
-  elements.targetText.style.direction = targetDir;
-  elements.targetText.style.textAlign = targetDir === 'rtl' ? 'right' : 'left';
-}
-
-function updateCharCount() {
-  elements.charCount.textContent = elements.sourceText.value.length;
-}
-
-// ══════════════════════════════════════════════════
-// 5) الإدخال الصوتي (Web Speech API)
-// ══════════════════════════════════════════════════
-function startVoiceInput() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    showToast('متصفحك لا يدعم الإدخال الصوتي');
-    return;
-  }
-  if (state.isListening) return;
-
-  const recognition = new SR();
-  recognition.lang = state.sourceLang === 'ar' ? 'ar-SA' : state.sourceLang;
-  recognition.continuous = false;
-  recognition.interimResults = true;
-
-  recognition.onstart = () => {
-    state.isListening = true;
-    elements.micBtn.classList.add('listening');
-    showToast('🎤 تحدث الآن...');
-  };
-
-  recognition.onresult = (event) => {
-    let transcript = '';
-    for (let i = 0; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript;
+    const text = await navigator.clipboard.readText();
+    if (!text) {
+      showToast('الحافظة فارغة');
+      return;
     }
-    elements.sourceText.value = transcript;
-    updateCharCount();
-  };
-
-  recognition.onerror = (event) => {
-    showToast('خطأ في الاستماع: ' + event.error);
-  };
-
-  recognition.onend = () => {
-    state.isListening = false;
-    elements.micBtn.classList.remove('listening');
-  };
-
-  recognition.start();
+    el.value = text;
+    el.focus();
+    el.dispatchEvent(new Event('input'));
+    showToast('✅ تم اللصق (' + text.length + ' حرف)');
+  } catch (err) {
+    showToast('⚠️ المتصفح لا يسمح باللصق التلقائي — الصق يدويًا');
+    el.focus();
+  }
 }
 
-// ══════════════════════════════════════════════════
-// 6) التحدث بصوت (TTS)
-// ══════════════════════════════════════════════════
-function speakResult() {
-  const text = elements.targetText.textContent;
-  if (!text || text === 'الترجمة ستظهر هنا' || text.startsWith('⚠️')) {
-    showToast('لا يوجد نص لقراءته');
+async function copyFromElement(id) {
+  const el = $(id);
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) {
+    showToast('لا يوجد نص لنسخه');
     return;
   }
-  if (!('speechSynthesis' in window)) {
-    showToast('متصفحك لا يدعم النطق');
-    return;
-  }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = state.targetLang === 'ar' ? 'ar-SA' : state.targetLang;
-  utterance.rate = 0.95;
-  window.speechSynthesis.speak(utterance);
-  showToast('🔊 جارٍ النطق...');
-}
-
-// ══════════════════════════════════════════════════
-// 7) نسخ النص
-// ══════════════════════════════════════════════════
-async function copyResult() {
-  const text = elements.targetText.textContent;
-  if (!text || text === 'الترجمة ستظهر هنا') return;
   try {
     await navigator.clipboard.writeText(text);
     showToast('✅ تم النسخ');
   } catch {
-    // fallback
+    el.select();
+    document.execCommand('copy');
+    showToast('✅ تم النسخ');
+  }
+}
+
+function clearElement(id) {
+  const el = $(id);
+  if (!el) return;
+  if (!el.value) return;
+  if (confirm('هل تريد مسح هذا الحقل؟')) {
+    el.value = '';
+    showToast('🗑️ تم المسح');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// 4) توليد البرومبتات لكل مرحلة
+// ══════════════════════════════════════════════════════
+function getVal(id) {
+  return ($(id)?.value || '').trim();
+}
+
+function buildStage1Prompt() {
+  const source = getVal('s1p1');
+  const context = getVal('s1p2');
+  const notes = getVal('s1p3');
+
+  if (!source) {
+    showToast('الصق البرومبت الأصلي أولاً (1.1)');
+    return '';
+  }
+
+  return `أنت مترجم ومحرر نصوص احترافي، متخصص في صياغة وترجمة البرومبتات والنصوص التقنية والتسويقية إلى العربية بدقة عالية.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 المهمة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ترجمة وتحسين البرومبت التالي إلى العربية الفصحى، بصياغة موجّهة للذكاء الاصطناعي (تعليمات واضحة + قيود + مخرجات متوقعة).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 البرومبت الأصلي
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${source}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚙️ السياق والمتطلبات
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${context || 'العربية الفصحى، نبرة رسمية احترافية، 3 نسخ بديلة (رسمية/ودية/مختصرة).'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗒️ ملاحظات إضافية
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${notes || 'لا توجد ملاحظات إضافية.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 المخرجات المطلوبة (بالترتيب)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. نسخة عربية محسّنة جاهزة للاستخدام مباشرة
+2. نسخة مشروحة توضح الاختيارات اللغوية والأسلوبية
+3. 3 نسخ بديلة (رسمية، ودية، مختصرة) مع سبب ملاءمة كل منها
+4. معجم مصطلحات مفتاحية (المصطلح الأصلي ← الترجمة الموصى بها + تفسير مختصر)
+5. خطوات التدقيق والتحقق من الدقة السياقية
+6. اقتراح آليات اختبار الترجمة مع النموذج
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 قواعد الصياغة للذكاء الاصطناعي
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- استخدم صيغة أوامر مباشرة (افعل، قدّم، تجنب)
+- افصل التعليمات عن القيود بوضوح
+- حدد المخرجات بدقة (شكل، طول، عدد)
+- حافظ على المصطلحات التقنية واضحة
+- فضّل التكييف الثقافي على الترجمة الحرفية عند التعارض
+
+🚫 قيود:
+- لا تختلق معلومات غير موجودة
+- لا تحذف أجزاء من المصدر
+- التزم بالفصحى مع مراعاة الطلاقة
+- ابتعد عن الترجمة الآلية الجامدة`;
+}
+
+function buildStage2Prompt() {
+  const raw = getVal('s2p1');
+  const improved = getVal('s2p2');
+  const variants = getVal('s2p3');
+  const source = getVal('s1p1');
+  const context = getVal('s1p2');
+
+  if (!raw && !improved) {
+    showToast('الصق الترجمة الخام (2.1) أو المحسّنة (2.2) أولاً');
+    return '';
+  }
+
+  return `أنت محرر برومبتات خبير. المهمة: تحسين الترجمة العربية لتصبح موجّهة باحترافية للذكاء الاصطناعي.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 البرومبت الأصلي (للسياق)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${source || '(لم يتم تقديم المصدر)'}
+
+⚙️ المتطلبات: ${context || 'فصحى، رسمية، واضحة، قابلة للاستخدام مباشرة'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 الترجمة الخام (تحتاج تحسين)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${raw || '(لم يتم تقديم ترجمة خام)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 النسخة المحسّنة سابقًا (إن وجدت)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${improved || '(لا توجد)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 النسخ البديلة السابقة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${variants || '(لا توجد)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 المطلوب: تحسين النسخة العربية لتكون
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. موجّهة لنموذج AI بصيغة أوامر واضحة
+2. مقسمة إلى: (السياق + التعليمات + القيود + المخرجات + أمثلة إن لزم)
+3. خالية من الغموض والترجمة الحرفية الجامدة
+4. تستخدم مصطلحات تقنية دقيقة
+5. تنتج 3 نسخ بديلة (رسمية، ودية، مختصرة) مع سبب ملاءمة كل واحدة
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 صيغة الإخراج
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+قدّم النتيجة في الأقسام التالية بوضوح:
+▶ النسخة المحسّنة الرئيسية
+▶ النسخة الرسمية البديلة
+▶ النسخة الودية البديلة
+▶ النسخة المختصرة البديلة
+▶ ملاحظات التحسين (ما الذي تغيّر ولماذا)
+
+🚫 لا تختلق محتوى جديدًا، حسّن الصياغة فقط`;
+}
+
+function buildStage3Prompt() {
+  const finalVersion = getVal('s3p1');
+  const explained = getVal('s3p2');
+  const glossary = getVal('s3p3');
+  const source = getVal('s1p1');
+
+  if (!finalVersion && !explained) {
+    showToast('الصق النسخة النهائية (3.1) أو المشروحة (3.2) أولاً');
+    return '';
+  }
+
+  return `أنت مراجع ترجمات وبرومبتات محترف. المهمة: مراجعة وتسليم النسخة النهائية بجودة مؤسسية.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 البرومبت الأصلي
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${source || '(غير متوفر)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 النسخة النهائية المرشحة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${finalVersion || '(لم تُقدَّم)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 الشرح اللغوي الحالي
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${explained || '(غير متوفر)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 معجم المصطلحات الحالي
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${glossary || '(غير متوفر)'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 المخرجات المطلوبة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣ النسخة النهائية الجاهزة
+   - نظيفة، مصقولة، قابلة للنسخ والاستخدام فورًا
+   - بصيغة برومبت احترافي موجّه للذكاء الاصطناعي
+
+2️⃣ النسخة المشروحة
+   - شرح الاختيارات اللغوية
+   - لماذا فُضّلت الترجمة الحرفية أو التكييف الثقافي في كل موضع
+   - توضيح المصطلحات التقنية
+
+3️⃣ معجم المصطلحات النهائي
+   - جدول: المصطلح الأصلي | الترجمة الموصى بها | التفسير
+
+4️⃣ خطوات التدقيق (QA Checklist)
+   - التحقق اللغوي (نحو/إملاء/أسلوب)
+   - التحقق السياقي (ملاءمة الجمهور والغرض)
+   - التحقق من الاتساق المصطلحي
+   - التحقق من اكتمال المخرجات المطلوبة
+
+5️⃣ آليات اختبار الترجمة مع النموذج
+   - 3 اختبارات مقترحة (Test Cases) لقياس جودة البرومبت
+   - معايير النجاح لكل اختبار
+   - كيفية التعديل بناءً على النتائج
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 التسليم النهائي
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+قدّم النتيجة بتنسيق واضح وقابل للنسخ المباشر، مع فصل الأقسام بخطوط ━━━.
+
+📌 الحد الأدنى للتسليم: نسخة جاهزة + شرح + معجم + خطة QA
+📌 قابل للتعديل: نعم، بناءً على ملاحظات المستخدم`;
+}
+
+// ══════════════════════════════════════════════════════
+// 5) عرض المخرجات
+// ══════════════════════════════════════════════════════
+function showOutput(stageNum, promptText) {
+  if (!promptText) return;
+
+  const box = $('output' + stageNum);
+  if (!box) return;
+
+  box.innerHTML = `
+    <div class="output-header">
+      <span class="output-title">📋 البرومبت الجاهز — المرحلة ${stageNum}</span>
+      <button class="output-copy" onclick="copyPrompt('output${stageNum}')">نسخ</button>
+    </div>
+    <pre>${escapeHtml(promptText)}</pre>
+  `;
+  box.classList.add('show');
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast('✅ تم توليد البرومبت — اضغط "نسخ"');
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+async function copyPrompt(outputId) {
+  const box = $(outputId);
+  if (!box) return;
+  const pre = box.querySelector('pre');
+  if (!pre) return;
+  const text = pre.textContent;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ تم نسخ البرومبت (' + text.length + ' حرف)');
+  } catch {
     const ta = document.createElement('textarea');
     ta.value = text;
     document.body.appendChild(ta);
@@ -253,141 +347,76 @@ async function copyResult() {
   }
 }
 
-// ══════════════════════════════════════════════════
-// 8) استخراج النص من الصورة (OCR)
-// ══════════════════════════════════════════════════
-async function processImage(file) {
-  if (typeof Tesseract === 'undefined') {
-    showToast('محرك OCR غير متاح');
-    return;
-  }
-  showToast('🔍 جارٍ استخراج النص...');
-  try {
-    const result = await Tesseract.recognize(file, state.sourceLang, {
-      logger: (m) => {
-        if (m.status === 'recognizing text') {
-          elements.ocrBtn.textContent = `⏳ ${Math.round(m.progress * 100)}%`;
-        }
-      },
-    });
-    elements.sourceText.value = result.data.text.trim();
-    updateCharCount();
-    showToast('✅ تم استخراج النص');
-  } catch (err) {
-    showToast('تعذر استخراج النص');
-  } finally {
-    elements.ocrBtn.textContent = '📷';
-    elements.imageInput.value = '';
-  }
+// ══════════════════════════════════════════════════════
+// 6) توليد برومبت المرحلة
+// ══════════════════════════════════════════════════════
+function handleGenerate(stageNum) {
+  let prompt = '';
+  if (stageNum === '1') prompt = buildStage1Prompt();
+  else if (stageNum === '2') prompt = buildStage2Prompt();
+  else if (stageNum === '3') prompt = buildStage3Prompt();
+
+  if (prompt) showOutput(stageNum, prompt);
 }
 
-// ══════════════════════════════════════════════════
-// 9) نموذج الاتصال
-// ══════════════════════════════════════════════════
-function handleContactSubmit(e) {
-  e.preventDefault();
-  const form = e.target;
-  const name = form.name.value.trim();
-  const email = form.email.value.trim();
-  const subject = form.subject.value;
-  const message = form.message.value.trim();
-
-  if (!name || !email || !message) {
-    showToast('يرجى ملء الحقول المطلوبة');
-    return;
-  }
-
-  const body = `الاسم: ${name}%0Aالبريد: ${email}%0A%0A${message}`;
-  const mailto = `mailto:support@linguahub.app?subject=${encodeURIComponent(subject)}&body=${body}`;
-  window.location.href = mailto;
-  showToast('📧 فتح تطبيق البريد...');
-  form.reset();
-}
-
-// ══════════════════════════════════════════════════
-// 10) Toast
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// 7) Toast
+// ══════════════════════════════════════════════════════
 let toastTimer;
 function showToast(msg) {
-  elements.toast.textContent = msg;
-  elements.toast.classList.add('show');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
-    elements.toast.classList.remove('show');
+    toast.classList.remove('show');
   }, 2400);
 }
 
-// ══════════════════════════════════════════════════
-// 11) ربط الأحداث
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// 8) ربط الأحداث
+// ══════════════════════════════════════════════════════
 function bindEvents() {
-  // التنقل
-  document.querySelectorAll('.nav-btn').forEach((btn) => {
-    btn.addEventListener('click', () => switchScreen(btn.dataset.tab));
-  });
-
   // السمة
-  elements.themeToggle.addEventListener('click', () => {
+  $('themeToggle')?.addEventListener('click', () => {
     const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
     setTheme(next);
   });
 
-  elements.themeModes.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-mode]');
-    if (btn) setTheme(btn.dataset.mode);
+  // تبويبات المراحل
+  document.querySelectorAll('.stage-tab').forEach((tab) => {
+    tab.addEventListener('click', () => switchStage(tab.dataset.stage));
   });
 
-  elements.colorGrid.addEventListener('click', (e) => {
-    const dot = e.target.closest('.color-dot');
-    if (dot) setColor(dot.dataset.color);
+  // أزرار اللصق والنسخ والمسح
+  document.querySelectorAll('[data-paste]').forEach((btn) => {
+    btn.addEventListener('click', () => pasteToElement(btn.dataset.paste));
   });
 
-  // الترجمة
-  elements.translateBtn.addEventListener('click', translate);
-  elements.swapBtn.addEventListener('click', swapLanguages);
-  elements.clearBtn.addEventListener('click', () => {
-    elements.sourceText.value = '';
-    elements.targetText.textContent = 'الترجمة ستظهر هنا';
-    elements.matchScore.textContent = '—';
-    updateCharCount();
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', () => copyFromElement(btn.dataset.copy));
   });
 
-  elements.sourceLang.addEventListener('change', (e) => {
-    state.sourceLang = e.target.value;
-    updateTextDirection();
-  });
-  elements.targetLang.addEventListener('change', (e) => {
-    state.targetLang = e.target.value;
-    updateTextDirection();
+  document.querySelectorAll('[data-clear]').forEach((btn) => {
+    btn.addEventListener('click', () => clearElement(btn.dataset.clear));
   });
 
-  elements.sourceText.addEventListener('input', updateCharCount);
-
-  // الصوت والنطق والنسخ
-  elements.micBtn.addEventListener('click', startVoiceInput);
-  elements.speakBtn.addEventListener('click', speakResult);
-  elements.copyBtn.addEventListener('click', copyResult);
-
-  // OCR
-  elements.ocrBtn.addEventListener('click', () => elements.imageInput.click());
-  elements.imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) processImage(file);
+  // أزرار التوليد
+  document.querySelectorAll('[data-generate]').forEach((btn) => {
+    btn.addEventListener('click', () => handleGenerate(btn.dataset.generate));
   });
-
-  // نموذج الاتصال
-  elements.contactForm.addEventListener('submit', handleContactSubmit);
 }
 
-// ══════════════════════════════════════════════════
-// 12) التهيئة
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// 9) التهيئة
+// ══════════════════════════════════════════════════════
 function init() {
   applyTheme();
-  updateTextDirection();
-  updateCharCount();
   bindEvents();
-  console.log(`%c🌐 LinguaHub Mobile ${APP_VERSION}`, 'color:#2563EB;font-weight:bold;font-size:14px');
+  console.log(
+    `%c✦ Prompt Translation Studio ${APP_VERSION}`,
+    'color:#7C3AED;font-weight:bold;font-size:13px'
+  );
 }
 
 document.addEventListener('DOMContentLoaded', init);
