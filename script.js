@@ -121,84 +121,94 @@ copyBtn.addEventListener('click', () => {
     showToast('تم النسخ!');
 });
 
-// 7. الترجمة الصوتية (الميكروفون - تم التصليح هنا)
+// 7. الترجمة الصوتية (الميكروفون) مع حماية ضد الأخطاء
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
 if (SpeechRecognition) {
-    recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    try {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
-    // خريطة لربط رموز اللغات بالصيغة المدعومة لمتصفحات الويب (Locale codes)
-    const langLocaleMap = {
-        ar: 'ar-SA', en: 'en-US', fr: 'fr-FR', es: 'es-ES',
-        de: 'de-DE', it: 'it-IT', pt: 'pt-PT', ru: 'ru-RU',
-        zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR', tr: 'tr-TR',
-        hi: 'hi-IN', ur: 'ur-PK', fa: 'fa-IR', nl: 'nl-NL',
-        pl: 'pl-PL', sv: 'sv-SE', el: 'el-GR', he: 'he-IL',
-        th: 'th-TH', vi: 'vi-VN', id: 'id-ID'
-    };
+        const langLocaleMap = {
+            ar: 'ar-SA', en: 'en-US', fr: 'fr-FR', es: 'es-ES',
+            de: 'de-DE', it: 'it-IT', pt: 'pt-PT', ru: 'ru-RU',
+            zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR', tr: 'tr-TR',
+            hi: 'hi-IN', ur: 'ur-PK', fa: 'fa-IR', nl: 'nl-NL',
+            pl: 'pl-PL', sv: 'sv-SE', el: 'el-GR', he: 'he-IL',
+            th: 'th-TH', vi: 'vi-VN', id: 'id-ID'
+        };
 
-    voiceBtn.addEventListener('click', () => {
-        try {
-            if (voiceBtn.classList.contains('recording')) {
-                recognition.stop();
-                return;
+        voiceBtn.addEventListener('click', () => {
+            try {
+                if (voiceBtn.classList.contains('recording')) {
+                    recognition.stop();
+                    return;
+                }
+
+                const currentLang = sourceLang.value;
+                recognition.lang = (currentLang === 'auto' || !langLocaleMap[currentLang]) 
+                    ? 'ar-SA' 
+                    : langLocaleMap[currentLang];
+
+                recognition.start();
+                voiceBtn.classList.add('recording');
+                voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                statusEl.textContent = 'جاري الاستماع...';
+                statusEl.className = 'status';
+            } catch (err) {
+                console.error(err);
+                resetVoiceState();
             }
+        });
 
-            const currentLang = sourceLang.value;
-            recognition.lang = (currentLang === 'auto' || !langLocaleMap[currentLang]) 
-                ? 'ar-SA' 
-                : langLocaleMap[currentLang];
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            sourceText.value += (sourceText.value ? ' ' : '') + transcript;
+            charCount.textContent = sourceText.value.length;
+        };
 
-            recognition.start();
-            voiceBtn.classList.add('recording');
-            voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
-            statusEl.textContent = 'جاري الاستماع...';
-            statusEl.className = 'status';
-        } catch (error) {
-            console.error(error);
+        recognition.onerror = () => {
             resetVoiceState();
+        };
+
+        recognition.onend = () => {
+            resetVoiceState();
+            if (statusEl.textContent === 'جاري الاستماع...') {
+                statusEl.textContent = '';
+            }
+        };
+
+        function resetVoiceState() {
+            voiceBtn.classList.remove('recording');
+            voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         }
-    });
-
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        sourceText.value += (sourceText.value ? ' ' : '') + transcript;
-        charCount.textContent = sourceText.value.length;
-    };
-
-    recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        statusEl.textContent = 'تعذر التعرف على الصوت، حاول مرة أخرى';
-        statusEl.classList.add('error');
-        resetVoiceState();
-    };
-
-    recognition.onend = () => {
-        resetVoiceState();
-        if (statusEl.textContent === 'جاري الاستماع...') {
-            statusEl.textContent = '';
-        }
-    };
-
-    function resetVoiceState() {
-        voiceBtn.classList.remove('recording');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+    } catch (e) {
+        console.error("Speech recognition not supported");
     }
 } else {
     voiceBtn.style.display = 'none';
 }
 
-// 8. الاستماع (Text to Speech)
+// 8. الاستماع للنص (زر السماعة Text to Speech) مع حماية أمان كاملة
 function speak(text, lang) {
     if (!text) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    window.speechSynthesis.speak(utterance);
+    try {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // إيقاف أي نطق سابق لمنع التعليق
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang === 'auto' ? 'ar' : lang;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            showToast('متصفحك لا يدعم نطق النصوص');
+        }
+    } catch (err) {
+        console.error('Speech synthesis error:', err);
+    }
 }
-speakSource.addEventListener('click', () => speak(sourceText.value, sourceLang.value === 'auto' ? 'ar' : sourceLang.value));
+
+speakSource.addEventListener('click', () => speak(sourceText.value, sourceLang.value));
 speakTarget.addEventListener('click', () => speak(targetText.value, targetLang.value));
 
 // 9. دالة الترجمة (تدعم الذكاء الاصطناعي)
