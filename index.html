@@ -2,212 +2,244 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
-  <meta name="theme-color" content="#2563EB" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#7C3AED" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <title>LinguaHub Mobile — ترجمة احترافية</title>
+  <title>Prompt Translation Studio — استوديو ترجمة البرومبتات</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- شريط علوي -->
+  <!-- ═══════ الشريط العلوي ═══════ -->
   <header class="app-bar">
     <div class="brand">
-      <span class="logo">🌐</span>
-      <span class="brand-name">LinguaHub</span>
+      <span class="logo">✦</span>
+      <div>
+        <div class="brand-name">Prompt Studio</div>
+        <div class="brand-sub">ترجمة البرومبتات احترافيًا</div>
+      </div>
     </div>
     <button class="icon-btn" id="themeToggle" aria-label="تبديل السمة">🌙</button>
   </header>
 
-  <!-- المحتوى -->
-  <main class="app-main">
-
-    <!-- ─────────── شاشة الترجمة ─────────── -->
-    <section class="screen active" id="screen-translate">
-      <div class="lang-selector">
-        <select class="lang-select" id="sourceLang">
-          <option value="ar">العربية</option>
-          <option value="en">English</option>
-          <option value="fr">Français</option>
-          <option value="es">Español</option>
-          <option value="de">Deutsch</option>
-          <option value="tr">Türkçe</option>
-        </select>
-        <button class="swap-btn" id="swapBtn" aria-label="تبديل اللغات">⇄</button>
-        <select class="lang-select" id="targetLang">
-          <option value="ar">العربية</option>
-          <option value="en" selected>English</option>
-          <option value="fr">Français</option>
-          <option value="es">Español</option>
-          <option value="de">Deutsch</option>
-          <option value="tr">Türkçe</option>
-        </select>
-      </div>
-
-      <div class="text-card">
-        <textarea id="sourceText" class="text-input" placeholder="اكتب النص هنا..." rows="5"></textarea>
-        <div class="card-actions">
-          <button class="icon-btn" id="micBtn" title="إدخال صوتي">🎤</button>
-          <button class="icon-btn" id="ocrBtn" title="استخراج نص من صورة">📷</button>
-          <button class="icon-btn" id="clearBtn" title="مسح">✕</button>
-          <span class="char-count" id="charCount">0</span>
-        </div>
-        <input type="file" id="imageInput" accept="image/*" hidden />
-      </div>
-
-      <button class="btn-primary" id="translateBtn">
-        <span>ترجم الآن</span>
-      </button>
-
-      <div class="text-card result-card">
-        <div id="targetText" class="result-text">الترجمة ستظهر هنا</div>
-        <div class="card-actions">
-          <button class="icon-btn" id="speakBtn" title="استماع">🔊</button>
-          <button class="icon-btn" id="copyBtn" title="نسخ">📋</button>
-        </div>
-      </div>
-
-      <div class="engine-badge">
-        المحرك: <strong>MyMemory NMT</strong> • المسافة: <strong id="matchScore">—</strong>
-      </div>
-    </section>
-
-    <!-- ─────────── شاشة المشاريع ─────────── -->
-    <section class="screen" id="screen-projects">
-      <h2 class="screen-title">مشاريعي</h2>
-
-      <div class="project-card">
-        <div class="project-head">
-          <h3>ترجمة عقد قانوني</h3>
-          <span class="status ongoing">قيد التنفيذ</span>
-        </div>
-        <p class="project-meta">عربي ← إنجليزي • 2,450 كلمة</p>
-        <div class="progress-bar"><div class="progress-fill" style="width: 65%"></div></div>
-        <span class="progress-label">65%</span>
-      </div>
-
-      <div class="project-card">
-        <div class="project-head">
-          <h3>دليل مستخدم تقني</h3>
-          <span class="status review">مراجعة</span>
-        </div>
-        <p class="project-meta">إنجليزي ← عربي • 5,120 كلمة</p>
-        <div class="progress-bar"><div class="progress-fill" style="width: 88%"></div></div>
-        <span class="progress-label">88%</span>
-      </div>
-
-      <div class="project-card">
-        <div class="project-head">
-          <h3>محتوى تسويقي</h3>
-          <span class="status done">مكتمل</span>
-        </div>
-        <p class="project-meta">عربي ← فرنسي • 890 كلمة</p>
-        <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
-        <span class="progress-label">100%</span>
-      </div>
-    </section>
-
-    <!-- ─────────── شاشة الاتصال ─────────── -->
-    <section class="screen" id="screen-contact">
-      <h2 class="screen-title">اتصل بنا</h2>
-      <p class="screen-subtitle">نرد خلال ساعتين عمل</p>
-
-      <div class="contact-actions">
-        <a class="contact-btn" href="mailto:support@linguahub.app">📧 البريد</a>
-        <a class="contact-btn" href="tel:+905000000000">📞 اتصال</a>
-        <a class="contact-btn" href="https://wa.me/905000000000" target="_blank" rel="noopener">💬 واتساب</a>
-      </div>
-
-      <form class="contact-form" id="contactForm">
-        <label>الاسم
-          <input type="text" name="name" required />
-        </label>
-        <label>البريد الإلكتروني
-          <input type="email" name="email" required />
-        </label>
-        <label>الموضوع
-          <select name="subject" required>
-            <option value="دعم فني">دعم فني</option>
-            <option value="استفسار عن الاشتراك">استفسار عن الاشتراك</option>
-            <option value="طلب عرض تجريبي للشركات">طلب عرض تجريبي للشركات</option>
-            <option value="أخرى">أخرى</option>
-          </select>
-        </label>
-        <label>الرسالة
-          <textarea name="message" rows="4" required></textarea>
-        </label>
-        <button type="submit" class="btn-primary">إرسال</button>
-      </form>
-
-      <div class="contact-info">
-        <p>📧 support@linguahub.app</p>
-        <p>📞 +90 500 000 0000</p>
-        <p>📍 إسطنبول، تركيا</p>
-      </div>
-    </section>
-
-    <!-- ─────────── شاشة الإعدادات ─────────── -->
-    <section class="screen" id="screen-settings">
-      <h2 class="screen-title">الإعدادات</h2>
-
-      <div class="setting-group">
-        <label class="setting-label">المظهر</label>
-        <div class="segmented" id="themeModes">
-          <button data-mode="light">☀️ فاتح</button>
-          <button data-mode="dark">🌙 داكن</button>
-          <button data-mode="system">⚙️ النظام</button>
-        </div>
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">اللون الرئيسي</label>
-        <div class="color-grid" id="colorGrid">
-          <button class="color-dot" data-color="#2563EB" style="background:#2563EB" aria-label="أزرق"></button>
-          <button class="color-dot" data-color="#16A34A" style="background:#16A34A" aria-label="أخضر"></button>
-          <button class="color-dot" data-color="#DC2626" style="background:#DC2626" aria-label="أحمر"></button>
-          <button class="color-dot" data-color="#9333EA" style="background:#9333EA" aria-label="بنفسجي"></button>
-          <button class="color-dot" data-color="#EA580C" style="background:#EA580C" aria-label="برتقالي"></button>
-          <button class="color-dot" data-color="#0891B2" style="background:#0891B2" aria-label="سماوي"></button>
-          <button class="color-dot" data-color="#DB2777" style="background:#DB2777" aria-label="وردي"></button>
-          <button class="color-dot" data-color="#475569" style="background:#475569" aria-label="رمادي"></button>
-        </div>
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">حول التطبيق</label>
-        <div class="about-card">
-          <p><strong>LinguaHub Mobile</strong></p>
-          <p>تطبيق ترجمة احترافي متعدد المحركات</p>
-          <p class="version">الإصدار v1.0.0 (Build 100)</p>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- شريط التنقل السفلي -->
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="translate">
-      <span class="nav-icon">🌐</span><span>ترجمة</span>
+  <!-- ═══════ شريط التنقل بين المراحل ═══════ -->
+  <nav class="stage-tabs" id="stageTabs">
+    <button class="stage-tab active" data-stage="1">
+      <span class="tab-num">1</span>
+      <span class="tab-label">الإدخال</span>
     </button>
-    <button class="nav-btn" data-tab="projects">
-      <span class="nav-icon">📁</span><span>المشاريع</span>
+    <button class="stage-tab" data-stage="2">
+      <span class="tab-num">2</span>
+      <span class="tab-label">الترجمة</span>
     </button>
-    <button class="nav-btn" data-tab="contact">
-      <span class="nav-icon">📧</span><span>اتصل</span>
-    </button>
-    <button class="nav-btn" data-tab="settings">
-      <span class="nav-icon">⚙️</span><span>الإعدادات</span>
+    <button class="stage-tab" data-stage="3">
+      <span class="tab-num">3</span>
+      <span class="tab-label">المراجعة</span>
     </button>
   </nav>
 
-  <!-- توست -->
+  <main class="app-main">
+
+    <!-- ═══════════════════════════════════════════
+         المرحلة 1: الإدخال والتحليل
+         ═══════════════════════════════════════════ -->
+    <section class="stage active" data-stage="1">
+      <div class="stage-header">
+        <span class="stage-badge">المرحلة 1</span>
+        <h2>الإدخال والتحليل</h2>
+        <p class="stage-desc">جهّز البرومبت الأصلي والسياق قبل الترجمة</p>
+      </div>
+
+      <!-- 1.1 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">1.1</span>
+          <h3>البرومبت الأصلي</h3>
+        </div>
+        <p class="sub-hint">الصق النص المصدر (بأي لغة) الذي تريد ترجمته</p>
+        <textarea id="s1p1" rows="5" placeholder="اكتب أو الصق البرومبت الأصلي هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s1p1">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s1p1">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s1p1">✕ مسح</button>
+        </div>
+      </div>
+
+      <!-- 1.2 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">1.2</span>
+          <h3>السياق والمتطلبات</h3>
+        </div>
+        <p class="sub-hint">اللغة الهدف، اللهجة، النبرة، عدد النسخ، المجال</p>
+        <textarea id="s1p2" rows="4" placeholder="مثال: العربية الفصحى، نبرة رسمية، 3 نسخ، مجال تقني"></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s1p2">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s1p2">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s1p2">✕ مسح</button>
+        </div>
+      </div>
+
+      <!-- 1.3 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">1.3</span>
+          <h3>ملاحظات إضافية</h3>
+        </div>
+        <p class="sub-hint">جمهور مستهدف، مصطلحات ممنوعة، قيود خاصة</p>
+        <textarea id="s1p3" rows="4" placeholder="مثال: الجمهور مطورون تقنيون، تجنب الترجمة الحرفية..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s1p3">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s1p3">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s1p3">✕ مسح</button>
+        </div>
+      </div>
+
+      <button class="generate-btn" data-generate="1">
+        ⚡ توليد برومبت المرحلة 1
+      </button>
+      <div class="output-box" id="output1"></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         المرحلة 2: الترجمة والتحسين
+         ═══════════════════════════════════════════ -->
+    <section class="stage" data-stage="2">
+      <div class="stage-header">
+        <span class="stage-badge">المرحلة 2</span>
+        <h2>الترجمة والتحسين</h2>
+        <p class="stage-desc">ألصق مخرجات AI وحسّنها على مراحل</p>
+      </div>
+
+      <!-- 2.1 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">2.1</span>
+          <h3>الترجمة الخام من AI</h3>
+        </div>
+        <p class="sub-hint">الصق الترجمة الأولية التي أنتجها النموذج</p>
+        <textarea id="s2p1" rows="5" placeholder="الصق الترجمة الخام هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s2p1">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s2p1">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s2p1">✕ مسح</button>
+        </div>
+      </div>
+
+      <!-- 2.2 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">2.2</span>
+          <h3>النسخة المحسّنة</h3>
+        </div>
+        <p class="sub-hint">الصق النسخة المحسّنة (بعد تحسين الصياغة للـ AI)</p>
+        <textarea id="s2p2" rows="5" placeholder="الصق النسخة المحسّنة هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s2p2">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s2p2">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s2p2">✕ مسح</button>
+        </div>
+      </div>
+
+      <!-- 2.3 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">2.3</span>
+          <h3>النسخ البديلة (نبرات)</h3>
+        </div>
+        <p class="sub-hint">رسمية / ودية / مختصرة / تفصيلية — كل نسخة بسطر</p>
+        <textarea id="s2p3" rows="5" placeholder="الصق النسخ البديلة هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s2p3">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s2p3">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s2p3">✕ مسح</button>
+        </div>
+      </div>
+
+      <button class="generate-btn" data-generate="2">
+        ⚡ توليد برومبت المرحلة 2
+      </button>
+      <div class="output-box" id="output2"></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         المرحلة 3: المراجعة والتسليم
+         ═══════════════════════════════════════════ -->
+    <section class="stage" data-stage="3">
+      <div class="stage-header">
+        <span class="stage-badge">المرحلة 3</span>
+        <h2>المراجعة والتسليم</h2>
+        <p class="stage-desc">نسخة نهائية + شرح + معجم مصطلحات</p>
+      </div>
+
+      <!-- 3.1 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">3.1</span>
+          <h3>النسخة النهائية الجاهزة</h3>
+        </div>
+        <p class="sub-hint">الصق النسخة القابلة للاستخدام مباشرة</p>
+        <textarea id="s3p1" rows="5" placeholder="الصق النسخة النهائية هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s3p1">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s3p1">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s3p1">✕ مسح</button>
+        </div>
+      </div>
+
+      <!-- 3.2 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">3.2</span>
+          <h3>النسخة المشروحة</h3>
+        </div>
+        <p class="sub-hint">شرح الاختيارات اللغوية والأسلوبية</p>
+        <textarea id="s3p2" rows="5" placeholder="الصق الشرح اللغوي هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s3p2">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s3p2">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s3p2">✕ مسح</button>
+        </div>
+      </div>
+
+      <!-- 3.3 -->
+      <div class="sub-card">
+        <div class="sub-head">
+          <span class="sub-num">3.3</span>
+          <h3>معجم المصطلحات + خطة التدقيق</h3>
+        </div>
+        <p class="sub-hint">المصطلحات المفتاحية + خطوات QA + آليات الاختبار</p>
+        <textarea id="s3p3" rows="5" placeholder="الصق المعجم وخطة التدقيق هنا..."></textarea>
+        <div class="btn-row">
+          <button class="mini-btn" data-paste="s3p3">📋 لصق من AI</button>
+          <button class="mini-btn" data-copy="s3p3">📄 نسخ</button>
+          <button class="mini-btn ghost" data-clear="s3p3">✕ مسح</button>
+        </div>
+      </div>
+
+      <button class="generate-btn" data-generate="3">
+        ⚡ توليد برومبت المرحلة 3
+      </button>
+      <div class="output-box" id="output3"></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         بطاقة الإصدار
+         ═══════════════════════════════════════════ -->
+    <div class="version-card">
+      <div class="version-row">
+        <span>Prompt Translation Studio</span>
+        <span class="version-badge">v1.0.0</span>
+      </div>
+      <p class="version-meta">Build 100 • أداة ترجمة البرومبتات احترافيًا</p>
+      <p class="version-meta">© 2024 — جميع الحقوق محفوظة</p>
+    </div>
+
+  </main>
+
+  <!-- ═══════ Toast ═══════ -->
   <div class="toast" id="toast"></div>
 
-  <!-- OCR (اختياري عبر CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
