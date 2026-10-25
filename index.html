@@ -1,148 +1,105 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>المترجم الذكي</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0F766E">
+  <title>منصة الترجمة الاحترافية | Pro Translation</title>
+  <meta name="description" content="منصة ترجمة احترافية للموبايل: الصق مفتاح API، استورد ملفاتك، ترجم صوتيًا، واختبر الاتصال بواجهة فيروزية أنيقة.">
+  <meta name="keywords" content="ترجمة, ترجمة صوتية, API, استيراد ملفات, SPI, منصة ترجمة">
+  <meta property="og:title" content="منصة الترجمة الاحترافية">
+  <meta property="og:description" content="ترجمة احترافية بواجهة موبايل أنيقة">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app">
-    <!-- ===== Header ===== -->
-    <header class="header">
-      <div class="brand">
-        <span class="logo">🌐</span>
-        <h1>المترجم الذكي</h1>
-      </div>
 
-      <div class="header-actions">
-        <select id="modelSelect" class="model-select" disabled>
-          <option value="">— لا يوجد نموذج —</option>
-        </select>
-        <button id="refreshModelsBtn" class="btn-icon" title="تحديث قائمة النماذج">⟳</button>
-        <button id="openSettingsBtn" class="btn-icon" title="الإعدادات">⚙️</button>
+  <div class="app-shell">
+
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark">T</span>
+        <div class="brand-text">
+          <h1 class="brand-title">منصة الترجمة</h1>
+          <p class="brand-sub">Pro Translation · v1.0</p>
+        </div>
       </div>
     </header>
 
-    <!-- ===== Main ===== -->
-    <main class="main">
-      <!-- Source panel -->
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-title">النص الأصلي</span>
-          <select id="sourceLang" class="lang-select">
-            <option value="auto">كشف تلقائي</option>
-            <option value="English">الإنجليزية</option>
-            <option value="Arabic" selected>العربية</option>
-            <option value="French">الفرنسية</option>
-            <option value="Spanish">الإسبانية</option>
-            <option value="German">الألمانية</option>
-            <option value="Turkish">التركية</option>
-            <option value="Russian">الروسية</option>
-            <option value="Chinese">الصينية</option>
-            <option value="Japanese">اليابانية</option>
-            <option value="Korean">الكورية</option>
-            <option value="Italian">الإيطالية</option>
-            <option value="Portuguese">البرتغالية</option>
-            <option value="Hindi">الهندية</option>
-            <option value="Urdu">الأردية</option>
-            <option value="Persian">الفارسية</option>
-          </select>
+    <main class="app-main">
+
+      <!-- 1) مفتاح API -->
+      <section class="card" aria-labelledby="apiTitle">
+        <h2 id="apiTitle" class="card-title">مفتاح API</h2>
+        <p class="card-desc">الصق مفتاح API الخاص بك للبدء</p>
+        <div class="field-row">
+          <input id="apiKeyInput" class="input ltr" type="text"
+                 placeholder="api_key_xxxxxxxxxxxx"
+                 dir="ltr" autocomplete="off" spellcheck="false"
+                 maxlength="128" aria-label="مفتاح API">
+          <button id="pasteBtn" class="btn btn-primary" type="button">لصق مفتاح API</button>
         </div>
-        <textarea id="sourceText" placeholder="اكتب أو الصق النص الذي تريد ترجمته هنا..."></textarea>
-        <div class="panel-footer">
-          <span id="charCount" class="counter">0 حرف</span>
-        </div>
+        <p class="hint">الحد الأقصى: 128 حرفًا · يُعرض LTR</p>
       </section>
 
-      <!-- Controls -->
-      <div class="controls">
-        <button id="translateBtn" class="btn-primary">
-          <span>ترجم</span>
-          <span class="arrow">←</span>
+      <!-- 2) استيراد ملفات -->
+      <section class="card" aria-labelledby="importTitle">
+        <h2 id="importTitle" class="card-title">استيراد ملفات</h2>
+        <p class="card-desc">ارفع ملف HTML أو JSON أو CSV للترجمة</p>
+        <button id="importBtn" class="btn btn-primary btn-block" type="button">استيراد ملفات</button>
+        <input id="fileInput" type="file" accept=".html,.htm,.json,.csv" hidden>
+        <p id="fileInfo" class="hint">لم يتم اختيار ملف</p>
+      </section>
+
+      <!-- 3) ترجمة صوتية احترافية -->
+      <section class="card" aria-labelledby="voiceTitle">
+        <h2 id="voiceTitle" class="card-title">ترجمة صوتية</h2>
+        <p class="card-desc">تحدث بصوتك واحصل على ترجمة احترافية</p>
+        <button id="voiceBtn" class="btn btn-voice btn-block" type="button">
+          <span class="icon" aria-hidden="true">🎙</span>
+          <span>ترجمة صوتية احترافية</span>
         </button>
-        <button id="swapBtn" class="btn-icon" title="تبديل اللغات">⇄</button>
-        <button id="copyBtn" class="btn-icon" title="نسخ الترجمة">📋</button>
-        <button id="clearBtn" class="btn-icon" title="مسح الكل">🗑️</button>
-      </div>
-
-      <!-- Target panel -->
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-title">الترجمة</span>
-          <select id="targetLang" class="lang-select">
-            <option value="English" selected>الإنجليزية</option>
-            <option value="Arabic">العربية</option>
-            <option value="French">الفرنسية</option>
-            <option value="Spanish">الإسبانية</option>
-            <option value="German">الألمانية</option>
-            <option value="Turkish">التركية</option>
-            <option value="Russian">الروسية</option>
-            <option value="Chinese">الصينية</option>
-            <option value="Japanese">اليابانية</option>
-            <option value="Korean">الكورية</option>
-            <option value="Italian">الإيطالية</option>
-            <option value="Portuguese">البرتغالية</option>
-            <option value="Hindi">الهندية</option>
-            <option value="Urdu">الأردية</option>
-            <option value="Persian">الفارسية</option>
-          </select>
-        </div>
-        <textarea id="outputText" readonly placeholder="ستظهر الترجمة هنا..."></textarea>
-        <div class="panel-footer">
-          <span id="statusMsg" class="status"></span>
-        </div>
+        <p id="voiceStatus" class="hint">اضغط لبدء التسجيل</p>
       </section>
+
+      <!-- 4) الخامة (نوع المحتوى) -->
+      <section class="card" aria-labelledby="materialTitle">
+        <h2 id="materialTitle" class="card-title">الخامة</h2>
+        <p class="card-desc">اختر نوع المحتوى المراد ترجمته</p>
+        <select id="materialSelect" class="input" aria-label="نوع الخامة">
+          <option value="text">نص</option>
+          <option value="voice">صوت</option>
+          <option value="image">صورة</option>
+          <option value="document">مستند</option>
+        </select>
+      </section>
+
+      <!-- 5) رابط SPI -->
+      <section class="card" aria-labelledby="spiTitle">
+        <h2 id="spiTitle" class="card-title">رابط SPI</h2>
+        <p class="card-desc">أدخل رابط SPI لربط الخدمة</p>
+        <input id="spiInput" class="input ltr" type="url"
+               placeholder="https://spi.example.com/endpoint"
+               dir="ltr" autocomplete="off" spellcheck="false"
+               aria-label="رابط SPI">
+      </section>
+
+      <!-- 6) خانة اختبار الاتصال -->
+      <section class="card" aria-labelledby="testTitle">
+        <h2 id="testTitle" class="card-title">اختبار الاتصال</h2>
+        <p class="card-desc">تحقق من إعدادات الاتصال قبل البدء</p>
+        <button id="testBtn" class="btn btn-outline btn-block" type="button">اختبار الاتصال</button>
+        <p id="testStatus" class="hint" aria-live="polite">لم يتم الاختبار بعد</p>
+      </section>
+
     </main>
+
+    <footer class="app-footer">
+      <p class="footer-text">جميع الحقوق محفوظة © 2025 — <span class="ltr-inline">Pro Translation</span></p>
+    </footer>
   </div>
 
-  <!-- ===== Settings Modal ===== -->
-  <div id="settingsModal" class="modal-overlay hidden" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <h2>إعدادات الاتصال</h2>
-        <button id="closeSettingsBtn" class="btn-icon" title="إغلاق">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="field">
-          <label for="endpointInput">API Endpoint URL</label>
-          <input
-            type="text"
-            id="endpointInput"
-            placeholder="https://api.groq.com/openai/v1"
-            dir="ltr"
-            autocomplete="off"
-          />
-          <small>
-            أمثلة: <code>https://api.openai.com/v1</code> — 
-            <code>https://api.groq.com/openai/v1</code> — 
-            <code>https://openrouter.ai/api/v1</code>
-          </small>
-        </div>
-
-        <div class="field">
-          <label for="apiKeyInput">API Key</label>
-          <input
-            type="password"
-            id="apiKeyInput"
-            placeholder="sk-..."
-            dir="ltr"
-            autocomplete="off"
-          />
-          <small>يتم تخزين المفتاح محلياً في متصفحك فقط (LocalStorage).</small>
-        </div>
-
-        <div class="modal-actions">
-          <button id="saveSettingsBtn" class="btn-primary">حفظ وتحميل النماذج</button>
-          <button id="clearSettingsBtn" class="btn-secondary">مسح البيانات</button>
-        </div>
-
-        <div id="settingsStatus" class="status"></div>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="script.js"></script>
 </body>
 </html>
