@@ -57,7 +57,6 @@ body {
   line-height: 1.65;
   color: var(--text);
   background-color: var(--bg);
-  /* لمحة تركوازية خفيفة لكسر التسطّح */
   background-image:
     radial-gradient(1100px 480px at 92% -12%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 62%),
     radial-gradient(900px 420px at 0% 0%, color-mix(in srgb, var(--secondary) 13%, transparent), transparent 60%);
@@ -373,7 +372,7 @@ select {
   padding-inline-end: 36px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: left 12px center; /* flip للـ RTL */
+  background-position: left 12px center;
   cursor: pointer;
 }
 
@@ -383,7 +382,6 @@ textarea {
   line-height: 1.7;
 }
 
-/* حقل + زر داخل حقل (مفتاح API) */
 .input-group { position: relative; display: flex; }
 .input-group input { padding-inline-end: 44px; }
 .input-addon {
@@ -505,7 +503,6 @@ textarea {
   background: var(--primary);
   border-color: var(--primary);
 }
-/* الزر ينزلق للاتجاه الآخر تلقائيًا في RTL */
 .switch input:checked + .track::after { transform: translateY(-50%) translateX(19px); }
 [dir="rtl"] .switch input:checked + .track::after { transform: translateY(-50%) translateX(-19px); }
 .switch input:focus-visible + .track { outline: 3px solid var(--ring); outline-offset: 2px; }
@@ -604,7 +601,6 @@ kbd {
 :root[data-theme="dark"] .feedback.success { color: #34d399; }
 :root[data-theme="dark"] .feedback.error   { color: #fca5a5; }
 
-/* المؤشر الدوّار */
 .spinner {
   width: 20px; height: 20px;
   border-radius: 50%;
