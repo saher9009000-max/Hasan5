@@ -242,7 +242,6 @@ async function loadModels(forceRefresh = false) {
     openSettings();
     return [];
   }
-  // cache
   if (!forceRefresh) {
     const cached = safeGet(STORAGE.modelsCache, null);
     if (cached && cached.timestamp && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
@@ -861,16 +860,13 @@ async function handleFileImport(file) {
 // 15) ربط الأحداث
 // ═══════════════════════════════════════════════════════
 function bindEvents() {
-  // السمة والإعدادات
   $('themeToggle').addEventListener('click', toggleTheme);
   $('settingsBtn').addEventListener('click', openSettings);
 
-  // محدد المحرك
   document.querySelectorAll('.engine-btn').forEach(btn => {
     btn.addEventListener('click', () => setEngine(btn.dataset.engine));
   });
 
-  // النماذج والنوع
   $('modelBtn').addEventListener('click', openModelModal);
   $('typeBtn').addEventListener('click', openTypeModal);
   $('confirmModelBtn').addEventListener('click', confirmModel);
@@ -878,7 +874,6 @@ function bindEvents() {
   $('refreshModelsBtn').addEventListener('click', refreshModels);
   $('modelSearch').addEventListener('input', () => renderModels(state.models));
 
-  // إغلاق النوافذ
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
   });
@@ -888,7 +883,6 @@ function bindEvents() {
     });
   });
 
-  // إعدادات
   $('toggleKeyBtn').addEventListener('click', () => {
     const inp = $('apiKeyInput');
     inp.type = inp.type === 'password' ? 'text' : 'password';
@@ -897,7 +891,6 @@ function bindEvents() {
   $('saveSettingsBtn').addEventListener('click', saveSettings);
   $('deleteKeyBtn').addEventListener('click', deleteKey);
 
-  // اللغات
   $('swapBtn').addEventListener('click', () => {
     const s = $('sourceLang').value;
     $('sourceLang').value = $('targetLang').value;
@@ -911,7 +904,6 @@ function bindEvents() {
     }
   });
 
-  // الإدخال
   $('sourceText').addEventListener('input', updateCharCount);
   $('pasteBtn').addEventListener('click', async () => {
     try {
@@ -941,18 +933,15 @@ function bindEvents() {
   });
   $('micBtn').addEventListener('click', () => startVoice(false));
 
-  // الترجمة
   $('translateBtn').addEventListener('click', translate);
   $('voiceTranslateBtn').addEventListener('click', () => startVoice(true));
   $('retranslateBtn').addEventListener('click', translate);
 
-  // النتيجة
   $('copyBtn').addEventListener('click', copyResult);
   $('speakBtn').addEventListener('click', speakResult);
   $('shareBtn').addEventListener('click', shareResult);
   $('favoriteBtn').addEventListener('click', toggleFavorite);
 
-  // تبويبات السجل والمفضلة
   document.querySelectorAll('.section-tab').forEach(tab => {
     tab.addEventListener('click', () => switchSection(tab.dataset.section));
   });
@@ -964,7 +953,6 @@ function bindEvents() {
 function init() {
   initTheme();
 
-  // استعادة الحالة
   const savedEngine = safeGet(STORAGE.engine, 'normal');
   setEngine(savedEngine);
 
