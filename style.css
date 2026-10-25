@@ -1,13 +1,13 @@
 /* =====================================================================
-   Turquoise Translate — styles.css
-   Theme variables, dark-mode overrides, responsive layout.
-   Colour values are also driven from JS (inline custom properties on
-   :root) so user-picked palettes win over these defaults.
+   ترجمة تركواز — styles.css
+   متغيّرات السمة، تعديلات الوضع الليلي، تخطيط RTL مستجيب.
+   تُدير JS أيضًا قيم الألوان عبر خصائص CSS المخصّصة على :root،
+   بحيث تتجاوز لوحة المستخدم القيم الافتراضية.
    ===================================================================== */
 
-/* ---------------- 1. Design tokens ---------------- */
+/* ---------------- 1. رموز التصميم ---------------- */
 :root {
-  /* Colour defaults (overridden at runtime by app.js) */
+  /* الألوان الافتراضية (تتجاوزها JS وقت التشغيل) */
   --primary: #14b8a6;
   --secondary: #06b6d4;
   --bg: #f0fdfa;
@@ -20,7 +20,7 @@
   --on-secondary: #042b27;
   --ring: rgba(20, 184, 166, .45);
 
-  /* Structural tokens */
+  /* رموز بنيوية */
   --radius-sm: 8px;
   --radius: 14px;
   --radius-lg: 20px;
@@ -28,13 +28,13 @@
   --shadow: 0 6px 18px rgba(4, 47, 46, .08), 0 2px 6px rgba(4, 47, 46, .05);
   --shadow-lg: 0 18px 48px rgba(4, 47, 46, .16);
   --header-h: 68px;
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-          "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font: 'Tajawal', 'Cairo', system-ui, -apple-system, 'Segoe UI',
+          'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 
-/* Dark-mode structural overrides (colours still come from JS) */
+/* تعديلات الوضع الليلي البنيوية */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
@@ -42,7 +42,7 @@
   --shadow-lg: 0 20px 56px rgba(0, 0, 0, .7);
 }
 
-/* ---------------- 2. Reset / base ---------------- */
+/* ---------------- 2. إعادة الضبط والأساسيات ---------------- */
 *, *::before, *::after { box-sizing: border-box; }
 
 [hidden] { display: none !important; }
@@ -54,13 +54,13 @@ body {
   min-height: 100vh;
   font-family: var(--font);
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.65;
   color: var(--text);
   background-color: var(--bg);
-  /* Subtle turquoise wash so the page never looks flat */
+  /* لمحة تركوازية خفيفة لكسر التسطّح */
   background-image:
-    radial-gradient(1100px 480px at 8% -12%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 62%),
-    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--secondary) 13%, transparent), transparent 60%);
+    radial-gradient(1100px 480px at 92% -12%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 62%),
+    radial-gradient(900px 420px at 0% 0%, color-mix(in srgb, var(--secondary) 13%, transparent), transparent 60%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
@@ -77,7 +77,7 @@ a { color: var(--primary); }
   border-radius: 6px;
 }
 
-/* Utility */
+/* أدوات مساعدة */
 .visually-hidden {
   position: absolute !important;
   width: 1px; height: 1px;
@@ -88,7 +88,8 @@ a { color: var(--primary); }
 
 .skip-link {
   position: fixed;
-  top: -100px; left: 12px;
+  top: -100px;
+  inset-inline-start: 12px;
   z-index: 200;
   padding: 10px 16px;
   background: var(--primary);
@@ -108,7 +109,7 @@ a { color: var(--primary); }
   background: var(--surface);
 }
 
-/* ---------------- 3. Header ---------------- */
+/* ---------------- 3. الرأس ---------------- */
 .app-header {
   position: sticky;
   top: 0;
@@ -151,13 +152,12 @@ a { color: var(--primary); }
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: .09em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
 .header-actions { position: relative; display: flex; align-items: center; gap: 10px; }
 
-/* Status pill */
+/* شارة الحالة */
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -187,7 +187,7 @@ a { color: var(--primary); }
   50%      { opacity: .35; transform: scale(.8); }
 }
 
-/* Icon buttons */
+/* أزرار الأيقونات */
 .icon-btn {
   display: grid;
   place-items: center;
@@ -199,18 +199,21 @@ a { color: var(--primary); }
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, transform .1s ease;
 }
-.icon-btn:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: var(--border); }
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: var(--border);
+}
 .icon-btn:active { transform: scale(.95); }
 .icon-btn[aria-expanded="true"] {
   background: color-mix(in srgb, var(--primary) 16%, transparent);
   border-color: var(--border-strong);
 }
 
-/* ---------------- 4. Dropdown menu ---------------- */
+/* ---------------- 4. القائمة المنسدلة ---------------- */
 .dropdown {
   position: absolute;
   top: calc(100% + 10px);
-  right: 0;
+  inset-inline-end: 0;
   z-index: 120;
   width: min(290px, calc(100vw - 24px));
   padding: 8px;
@@ -230,7 +233,6 @@ a { color: var(--primary); }
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: .12em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
@@ -239,13 +241,13 @@ a { color: var(--primary); }
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 10px;
+  padding: 10px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: var(--text);
   font-size: 14px;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   transition: background .12s ease;
 }
@@ -276,7 +278,7 @@ a { color: var(--primary); }
 }
 .dropdown-row:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
 
-/* ---------------- 5. Layout & cards ---------------- */
+/* ---------------- 5. التخطيط والبطاقات ---------------- */
 .layout {
   width: min(1120px, 100%);
   margin: 0 auto;
@@ -315,7 +317,6 @@ a { color: var(--primary); }
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: .02em;
   color: var(--on-secondary);
   background: color-mix(in srgb, var(--secondary) 30%, var(--surface));
   border: 1px solid var(--border);
@@ -323,7 +324,7 @@ a { color: var(--primary); }
 }
 .badge.live { color: var(--on-primary); background: var(--primary); border-color: transparent; }
 
-/* ---------------- 6. Form fields ---------------- */
+/* ---------------- 6. حقول النماذج ---------------- */
 .field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -337,7 +338,6 @@ a { color: var(--primary); }
   font-size: 12.5px;
   font-weight: 700;
   letter-spacing: .03em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
@@ -355,7 +355,9 @@ textarea {
   font-size: 14.5px;
   transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
-input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--text) 42%, transparent); }
+input::placeholder, textarea::placeholder {
+  color: color-mix(in srgb, var(--text) 42%, transparent);
+}
 
 input:hover, select:hover, textarea:hover { border-color: var(--border-strong); }
 
@@ -368,25 +370,26 @@ input:focus, select:focus, textarea:focus {
 select {
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 36px;
+  padding-inline-end: 36px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: left 12px center; /* flip للـ RTL */
   cursor: pointer;
 }
 
 textarea {
   min-height: 210px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-/* Input group (key + eye toggle) */
+/* حقل + زر داخل حقل (مفتاح API) */
 .input-group { position: relative; display: flex; }
-.input-group input { padding-right: 44px; }
+.input-group input { padding-inline-end: 44px; }
 .input-addon {
   position: absolute;
-  top: 50%; right: 6px;
+  top: 50%;
+  inset-inline-end: 6px;
   transform: translateY(-50%);
   width: 32px; height: 32px;
   display: grid;
@@ -398,7 +401,10 @@ textarea {
   cursor: pointer;
   font-size: 15px;
 }
-.input-addon:hover { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--text); }
+.input-addon:hover {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--text);
+}
 
 .hint {
   font-size: 11.8px;
@@ -406,7 +412,7 @@ textarea {
   line-height: 1.4;
 }
 
-/* ---------------- 7. Buttons ---------------- */
+/* ---------------- 7. الأزرار ---------------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -419,7 +425,8 @@ textarea {
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform .1s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+  transition: transform .1s ease, background .15s ease, border-color .15s ease,
+              box-shadow .15s ease, opacity .15s ease;
   user-select: none;
 }
 .btn:active { transform: translateY(1px); }
@@ -452,7 +459,7 @@ textarea {
 
 .swap-btn { align-self: flex-end; margin-bottom: 2px; padding: 10px 12px; font-size: 17px; }
 
-/* ---------------- 8. Switch ---------------- */
+/* ---------------- 8. المفتاح ---------------- */
 .switch-row {
   display: inline-flex;
   align-items: center;
@@ -485,7 +492,8 @@ textarea {
 .switch .track::after {
   content: "";
   position: absolute;
-  top: 50%; left: 3px;
+  top: 50%;
+  inset-inline-start: 3px;
   width: 19px; height: 19px;
   border-radius: 50%;
   background: var(--surface);
@@ -497,10 +505,12 @@ textarea {
   background: var(--primary);
   border-color: var(--primary);
 }
-.switch input:checked + .track::after { transform: translate(19px, -50%); }
+/* الزر ينزلق للاتجاه الآخر تلقائيًا في RTL */
+.switch input:checked + .track::after { transform: translateY(-50%) translateX(19px); }
+[dir="rtl"] .switch input:checked + .track::after { transform: translateY(-50%) translateX(-19px); }
 .switch input:focus-visible + .track { outline: 3px solid var(--ring); outline-offset: 2px; }
 
-/* ---------------- 9. Toolbar & language row ---------------- */
+/* ---------------- 9. شريط الأدوات وصف اللغات ---------------- */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -510,7 +520,7 @@ textarea {
   margin-bottom: 16px;
   border-bottom: 1px dashed var(--border);
 }
-.toolbar .switch-row.inline { margin-left: auto; }
+.toolbar .switch-row.inline { margin-inline-start: auto; }
 
 .lang-row {
   display: grid;
@@ -520,7 +530,7 @@ textarea {
   margin-bottom: 18px;
 }
 
-/* ---------------- 10. Panes ---------------- */
+/* ---------------- 10. اللوحات ---------------- */
 .panes {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -564,7 +574,7 @@ textarea {
 }
 .pane-foot-actions { display: flex; gap: 6px; }
 
-/* ---------------- 11. Actions / feedback ---------------- */
+/* ---------------- 11. الإجراءات والتغذية الراجعة ---------------- */
 .actions {
   display: flex;
   align-items: center;
@@ -574,7 +584,7 @@ textarea {
 }
 
 .kbd-hint {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 11.5px;
   color: var(--muted);
 }
@@ -594,7 +604,7 @@ kbd {
 :root[data-theme="dark"] .feedback.success { color: #34d399; }
 :root[data-theme="dark"] .feedback.error   { color: #fca5a5; }
 
-/* Spinner */
+/* المؤشر الدوّار */
 .spinner {
   width: 20px; height: 20px;
   border-radius: 50%;
@@ -604,7 +614,7 @@ kbd {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------------- 12. History ---------------- */
+/* ---------------- 12. السجل ---------------- */
 .history-list {
   list-style: none;
   margin: 0; padding: 0;
@@ -639,7 +649,7 @@ kbd {
 
 .history-src, .history-out {
   font-size: 13.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -657,7 +667,7 @@ kbd {
   color: var(--muted);
 }
 
-/* ---------------- 13. Dialog ---------------- */
+/* ---------------- 13. نافذة الحوار ---------------- */
 .dialog {
   width: min(480px, calc(100vw - 28px));
   padding: 0;
@@ -733,10 +743,10 @@ kbd {
   margin-top: 4px;
 }
 
-/* ---------------- 14. Toasts ---------------- */
+/* ---------------- 14. التنبيهات (Toasts) ---------------- */
 .toast-stack {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 16px;
   z-index: 200;
   display: flex;
@@ -761,9 +771,9 @@ kbd {
   font-weight: 600;
   animation: toastIn .2s ease-out;
 }
-.toast.success { border-left: 4px solid #10b981; }
-.toast.error   { border-left: 4px solid #ef4444; }
-.toast.info    { border-left: 4px solid var(--primary); }
+.toast.success { border-inline-start: 4px solid #10b981; }
+.toast.error   { border-inline-start: 4px solid #ef4444; }
+.toast.info    { border-inline-start: 4px solid var(--primary); }
 .toast.leaving { animation: toastOut .2s ease-in forwards; }
 
 @keyframes toastIn {
@@ -774,7 +784,7 @@ kbd {
   to { opacity: 0; transform: translateY(8px) scale(.97); }
 }
 
-/* ---------------- 15. Responsive ---------------- */
+/* ---------------- 15. الاستجابة ---------------- */
 @media (max-width: 900px) {
   .lang-row {
     grid-template-columns: 1fr 1fr;
@@ -800,9 +810,14 @@ kbd {
 
   .toolbar { gap: 8px; }
   .toolbar .btn { flex: 1 1 auto; justify-content: center; }
-  .toolbar .switch-row.inline { margin-left: 0; width: 100%; justify-content: space-between;
-                                padding: 8px 10px; border: 1px solid var(--border);
-                                border-radius: var(--radius-sm); }
+  .toolbar .switch-row.inline {
+    margin-inline-start: 0;
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
 
   .actions { gap: 10px; }
   .actions .btn-lg { width: 100%; }
@@ -812,15 +827,18 @@ kbd {
   .color-grid { grid-template-columns: 1fr; }
   .color-field input[type="color"] { height: 44px; }
 
-  .toast-stack { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+  .toast-stack { inset-inline: 12px; bottom: 12px; max-width: none; }
 }
 
 @media (max-width: 400px) {
-  .lang-row { grid-template-columns: 1fr; grid-template-areas: "from" "to" "model" "swap"; }
+  .lang-row {
+    grid-template-columns: 1fr;
+    grid-template-areas: "from" "to" "model" "swap";
+  }
   .lang-row .swap-btn { justify-self: stretch; width: 100%; }
 }
 
-/* ---------------- 16. Motion preferences ---------------- */
+/* ---------------- 16. تفضيلات الحركة ---------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;
