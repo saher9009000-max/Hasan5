@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d9488">
+  <title>ترجمة فاخرة · Premium Translate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5h7"/><path d="M9 3v2c0 4.418-2.239 8-5 8"/><path d="M5 9c0 2.144 2.252 3.908 5.17 4.6"/><path d="M12 20l4-9 4 9"/><path d="M14.5 16h5"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">ترجمة فاخرة</span>
+        <span class="brand-ver">الإصدار 1.1</span>
+      </div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <button class="icon-btn" id="historyToggleBtn" type="button" aria-label="عرض السجل والمفضلة" title="السجل والمفضلة">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+      </button>
+      <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="تبديل الوضع الداكن" title="الوضع الداكن">
+        <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="الإعدادات" title="الإعدادات">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ========== MAIN ========== -->
+<main class="main-wrap">
+
+  <section class="hero">
+    <h1>ترجمة <span>ذكية</span> بلا حدود</h1>
+    <p>محرّكان للترجمة: ترجمة عادية فورية، وترجمة بالذكاء الاصطناعي بجودة احترافية.</p>
+  </section>
+
+  <!-- Control Deck -->
+  <section class="control-deck" aria-label="إعدادات الترجمة">
+    <div class="control-row">
+      <div class="engine-switch" role="radiogroup" aria-label="اختيار محرك الترجمة">
+        <button class="engine-btn active" data-engine="normal" type="button" role="radio" aria-checked="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+          الترجمة العادية
+        </button>
+        <button class="engine-btn" data-engine="ai" type="button" role="radio" aria-checked="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.09 6.26L20 9l-5 3.64L16.18 20 12 16l-4.18 4L9 12.64 4 9l5.91-.74z"/></svg>
+          الترجمة بالذكاء الاصطناعي
+        </button>
+      </div>
+    </div>
+
+    <div class="ai-options" id="aiOptions" hidden>
+      <button class="selector-btn" id="modelSelectorBtn" type="button" aria-haspopup="dialog">
+        <span class="sel-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+        </span>
+        <span class="sel-body">
+          <span class="sel-label">النموذج</span>
+          <span class="sel-value" id="modelSelectorValue">لم يتم اختيار نموذج</span>
+        </span>
+        <svg class="sel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+
+      <button class="selector-btn" id="typeSelectorBtn" type="button" aria-haspopup="dialog">
+        <span class="sel-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h14"/></svg>
+        </span>
+        <span class="sel-body">
+          <span class="sel-label">نوع الترجمة</span>
+          <span class="sel-value" id="typeSelectorValue">ترجمة طبيعية</span>
+        </span>
+        <svg class="sel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- Translation Card -->
+  <section class="translation-card" aria-label="منطقة الترجمة">
+    <div class="lang-bar">
+      <div class="lang-select-wrap">
+        <label class="sr-only" for="sourceLang">لغة المصدر</label>
+        <select class="lang-select" id="sourceLang"></select>
+      </div>
+      <button class="swap-btn" id="swapBtn" type="button" aria-label="تبديل اللغتين" title="تبديل اللغتين">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3L4 7l4 4"/><path d="M4 7h16"/><path d="M16 21l4-4-4-4"/><path d="M20 17H4"/></svg>
+      </button>
+      <div class="lang-select-wrap">
+        <label class="sr-only" for="targetLang">لغة الهدف</label>
+        <select class="lang-select" id="targetLang"></select>
+      </div>
+    </div>
+
+    <div class="panes">
+      <!-- Source pane -->
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            النص الأصلي
+          </span>
+          <span class="char-count" id="charCount">0 / 500</span>
+        </div>
+        <textarea class="source-textarea" id="sourceText" placeholder="اكتب أو الصق النص هنا…" maxlength="500" spellcheck="false"></textarea>
+        <div class="pane-foot">
+          <button class="tool-btn" id="pasteBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <span>لصق</span>
+          </button>
+          <button class="tool-btn" id="voiceInputBtn" type="button" title="ترجمة صوتية (إدخال بالصوت)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span>صوتي</span>
+          </button>
+          <button class="tool-btn" id="clearBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>مسح</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Output pane -->
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            الترجمة
+          </span>
+        </div>
+        <div class="output-area" id="outputArea" aria-live="polite">
+          <div class="output-placeholder" id="outputPlaceholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            ستظهر الترجمة هنا
+          </div>
+          <div class="output-text" id="outputText" hidden></div>
+        </div>
+        <div class="pane-foot">
+          <button class="tool-btn" id="copyBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span>نسخ</span>
+          </button>
+          <button class="tool-btn" id="speakBtn" type="button" disabled>
+            <svg id="speakIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            <span>نطق</span>
+          </button>
+          <button class="tool-btn" id="shareBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span>مشاركة</span>
+          </button>
+          <button class="tool-btn" id="favBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>مفضلة</span>
+          </button>
+          <button class="tool-btn" id="retranslateBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <span>إعادة</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar" hidden role="status"></div>
+
+    <div class="action-bar">
+      <button class="btn-primary" id="translateBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+        ترجمة
+      </button>
+      <button class="btn-secondary icon-only" id="clearAllBtn" type="button" aria-label="مسح الكل" title="مسح الكل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- History & Favorites -->
+  <section class="history-section" id="historySection">
+    <div class="history-head">
+      <div class="history-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+        السجل والمفضلة
+      </div>
+      <div class="history-tabs" role="tablist">
+        <button class="history-tab active" data-history-tab="history" type="button" role="tab" aria-selected="true">السجل</button>
+        <button class="history-tab" data-history-tab="favorites" type="button" role="tab" aria-selected="false">المفضلة</button>
+      </div>
+    </div>
+    <div class="history-search">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="historySearchInput" placeholder="بحث في السجل والمفضلة…" aria-label="بحث">
+      </div>
+      <button class="tool-btn danger" id="clearHistoryBtn" type="button" title="حذف كل السجل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </section>
+
+</main>
+
+<!-- ========== FLOATING BUBBLE ========== -->
+<div class="bubble-toggle-wrap">
+  <div class="bubble-panel" id="bubblePanel" role="dialog" aria-label="فقاعة الترجمة العائمة">
+    <div class="bubble-head">
+      <div class="bubble-head-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        ترجمة سريعة
+      </div>
+      <button class="bubble-head-close" id="bubbleCloseBtn" type="button" aria-label="إغلاق الفقاعة">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="bubble-body">
+      <textarea class="bubble-input" id="bubbleInput" placeholder="اكتب نصاً للترجمة السريعة…" maxlength="500"></textarea>
+      <div class="bubble-row">
+        <select class="bubble-select" id="bubbleSourceLang" aria-label="من"></select>
+        <select class="bubble-select" id="bubbleTargetLang" aria-label="إلى"></select>
+      </div>
+      <div class="bubble-row">
+        <button class="bubble-translate-btn" id="bubbleTranslateBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+          ترجمة
+        </button>
+      </div>
+      <div class="bubble-result empty" id="bubbleResult">النتيجة ستظهر هنا…</div>
+    </div>
+  </div>
+  <button class="bubble-fab" id="bubbleFab" type="button" aria-label="فتح فقاعة الترجمة العائمة" title="فقاعة الترجمة">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>
+    <span class="bubble-dot" id="bubbleDot" hidden></span>
+  </button>
+</div>
+
+<!-- ========== MODALS ========== -->
+
+<!-- Model Modal -->
+<div class="modal-overlay" id="modelModal" role="dialog" aria-modal="true" aria-labelledby="modelModalTitle">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div class="modal-head-text">
+        <div class="modal-title" id="modelModalTitle">اختيار النموذج</div>
+        <div class="modal-sub">النماذج المتاحة من نقطة النهاية <code>/models</code></div>
+      </div>
+      <button class="modal-close" type="button" data-close-modal="modelModal" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="model-search-row">
+        <div class="search-input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="modelSearchInput" placeholder="ابحث عن نموذج…" aria-label="بحث النماذج">
+        </div>
+        <button class="btn-secondary" id="refreshModelsBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          تحديث
+        </button>
+      </div>
+      <div class="status-bar" id="modelStatus" hidden role="status"></div>
+      <div class="model-list" id="modelList">
+        <div class="history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+          اضغط "تحديث" لجلب النماذج من خدمتك.
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" type="button" data-close-modal="modelModal">إلغاء</button>
+      <button class="btn-primary" id="confirmModelBtn" type="button" disabled>تأكيد الاختيار</button>
+    </div>
+  </div>
+</div>
+
+<!-- Translation Type Modal -->
+<div class="modal-overlay" id="typeModal" role="dialog" aria-modal="true" aria-labelledby="typeModalTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-head-text">
+        <div class="modal-title" id="typeModalTitle">نوع الترجمة</div>
+        <div class="modal-sub">يؤثر هذا الاختيار على تعليمات النموذج عند استخدام الذكاء الاصطناعي.</div>
+      </div>
+      <button class="modal-close" type="button" data-close-modal="typeModal" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="type-grid" id="typeGrid"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" type="button" data-close-modal="typeModal">إلغاء</button>
+      <button class="btn-primary" id="confirmTypeBtn" type="button">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div class="modal-head-text">
+        <div class="modal-title" id="settingsModalTitle">الإعدادات</div>
+        <div class="modal-sub">إعدادات الترجمة بالذكاء الاصطناعي فقط. الترجمة العادية لا تحتاج مفتاحاً.</div>
+      </div>
+      <button class="modal-close" type="button" data-close-modal="settingsModal" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-group">
+        <label class="settings-label" for="apiKeyInput">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          مفتاح API
+        </label>
+        <div class="settings-input-wrap">
+          <input class="settings-input has-action" type="password" id="apiKeyInput" placeholder="sk-…" autocomplete="off" spellcheck="false">
+          <button class="input-action-btn" id="toggleApiKeyBtn" type="button" aria-label="إظهار أو إخفاء المفتاح">
+            <svg id="eyeIconShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eyeIconHide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+        <div class="settings-hint">يُحفظ المفتاح محلياً في متصفحك فقط، ولا يُرسل إلى أي جهة غير خدمة الذكاء الاصطناعي التي تحددها.</div>
+      </div>
+
+      <div class="settings-group">
+        <label class="settings-label" for="endpointInput">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          عنوان Endpoint الأساسي
+        </label>
+        <input class="settings-input" type="url" id="endpointInput" placeholder="https://api.example.com/v1" autocomplete="off" spellcheck="false">
+        <div class="settings-hint">مثال: <code>https://api.openai.com/v1</code> — سنستخدم <code>/chat/completions</code> و<code>/models</code>.</div>
+      </div>
+
+      <div class="connection-status" id="connectionStatus">
+        <span class="dot"></span>
+        <span id="connectionStatusText">لم يتم اختبار الاتصال بعد.</span>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn-secondary" id="testConnectionBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          اختبار الاتصال
+        </button>
+        <button class="btn-secondary" id="deleteKeyBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          حذف المفتاح
+        </button>
+      </div>
+
+      <div class="storage-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span><strong>تنبيه أمان:</strong> يوفّر LocalStorage تخزيناً محلياً فقط ولا يحمي مفاتيح API من الوصول إليها عبر المتصفح. لا تستخدم مفاتيح حساسة على أجهزة مشتركة.</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" type="button" data-close-modal="settingsModal">إغلاق</button>
+      <button class="btn-primary" id="saveSettingsBtn" type="button">حفظ الإعدادات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
