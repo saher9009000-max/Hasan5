@@ -1,105 +1,70 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0F766E">
-  <title>منصة الترجمة الاحترافية | Pro Translation</title>
-  <meta name="description" content="منصة ترجمة احترافية للموبايل: الصق مفتاح API، استورد ملفاتك، ترجم صوتيًا، واختبر الاتصال بواجهة فيروزية أنيقة.">
-  <meta name="keywords" content="ترجمة, ترجمة صوتية, API, استيراد ملفات, SPI, منصة ترجمة">
-  <meta property="og:title" content="منصة الترجمة الاحترافية">
-  <meta property="og:description" content="ترجمة احترافية بواجهة موبايل أنيقة">
-  <meta property="og:type" content="website">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<!-- الشريط العلوي -->
+<header class="top-bar">
+  <div class="right-controls">
+    <button id="themeToggleBtn" class="icon-btn" title="تبديل ألوان الموقع / الوضع الداكن">🌙</button>
+  </div>
+  <div class="left-controls">
+    <!-- زر ستيغ على أقصى اليسار -->
+    <button id="settingsBtn" class="settings-btn">⚙️ ستيغ</button>
+  </div>
+</header>
 
-  <div class="app-shell">
-
-    <header class="app-header">
-      <div class="brand">
-        <span class="brand-mark">T</span>
-        <div class="brand-text">
-          <h1 class="brand-title">منصة الترجمة</h1>
-          <p class="brand-sub">Pro Translation · v1.0</p>
-        </div>
-      </div>
-    </header>
-
-    <main class="app-main">
-
-      <!-- 1) مفتاح API -->
-      <section class="card" aria-labelledby="apiTitle">
-        <h2 id="apiTitle" class="card-title">مفتاح API</h2>
-        <p class="card-desc">الصق مفتاح API الخاص بك للبدء</p>
-        <div class="field-row">
-          <input id="apiKeyInput" class="input ltr" type="text"
-                 placeholder="api_key_xxxxxxxxxxxx"
-                 dir="ltr" autocomplete="off" spellcheck="false"
-                 maxlength="128" aria-label="مفتاح API">
-          <button id="pasteBtn" class="btn btn-primary" type="button">لصق مفتاح API</button>
-        </div>
-        <p class="hint">الحد الأقصى: 128 حرفًا · يُعرض LTR</p>
-      </section>
-
-      <!-- 2) استيراد ملفات -->
-      <section class="card" aria-labelledby="importTitle">
-        <h2 id="importTitle" class="card-title">استيراد ملفات</h2>
-        <p class="card-desc">ارفع ملف HTML أو JSON أو CSV للترجمة</p>
-        <button id="importBtn" class="btn btn-primary btn-block" type="button">استيراد ملفات</button>
-        <input id="fileInput" type="file" accept=".html,.htm,.json,.csv" hidden>
-        <p id="fileInfo" class="hint">لم يتم اختيار ملف</p>
-      </section>
-
-      <!-- 3) ترجمة صوتية احترافية -->
-      <section class="card" aria-labelledby="voiceTitle">
-        <h2 id="voiceTitle" class="card-title">ترجمة صوتية</h2>
-        <p class="card-desc">تحدث بصوتك واحصل على ترجمة احترافية</p>
-        <button id="voiceBtn" class="btn btn-voice btn-block" type="button">
-          <span class="icon" aria-hidden="true">🎙</span>
-          <span>ترجمة صوتية احترافية</span>
-        </button>
-        <p id="voiceStatus" class="hint">اضغط لبدء التسجيل</p>
-      </section>
-
-      <!-- 4) الخامة (نوع المحتوى) -->
-      <section class="card" aria-labelledby="materialTitle">
-        <h2 id="materialTitle" class="card-title">الخامة</h2>
-        <p class="card-desc">اختر نوع المحتوى المراد ترجمته</p>
-        <select id="materialSelect" class="input" aria-label="نوع الخامة">
-          <option value="text">نص</option>
-          <option value="voice">صوت</option>
-          <option value="image">صورة</option>
-          <option value="document">مستند</option>
-        </select>
-      </section>
-
-      <!-- 5) رابط SPI -->
-      <section class="card" aria-labelledby="spiTitle">
-        <h2 id="spiTitle" class="card-title">رابط SPI</h2>
-        <p class="card-desc">أدخل رابط SPI لربط الخدمة</p>
-        <input id="spiInput" class="input ltr" type="url"
-               placeholder="https://spi.example.com/endpoint"
-               dir="ltr" autocomplete="off" spellcheck="false"
-               aria-label="رابط SPI">
-      </section>
-
-      <!-- 6) خانة اختبار الاتصال -->
-      <section class="card" aria-labelledby="testTitle">
-        <h2 id="testTitle" class="card-title">اختبار الاتصال</h2>
-        <p class="card-desc">تحقق من إعدادات الاتصال قبل البدء</p>
-        <button id="testBtn" class="btn btn-outline btn-block" type="button">اختبار الاتصال</button>
-        <p id="testStatus" class="hint" aria-live="polite">لم يتم الاختبار بعد</p>
-      </section>
-
-    </main>
-
-    <footer class="app-footer">
-      <p class="footer-text">جميع الحقوق محفوظة © 2025 — <span class="ltr-inline">Pro Translation</span></p>
-    </footer>
+<!-- لوحة الإعدادات (تفتح عند الضغط على زر ستيغ) -->
+<div id="settingsPanel" class="settings-panel hidden">
+  <div class="setting-group">
+    <label>خانة لصق مفتاح API:</label>
+    <div class="input-row">
+      <input type="text" id="apiKeyInput" placeholder="أدخل مفتاح API هنا...">
+      <button id="pasteBtn" class="action-btn">لصق</button>
+    </div>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="script.js"></script>
-</body>
-</html>
+  <div class="setting-group">
+    <label>خانة رابط موقع API (SPI):</label>
+    <input type="text" id="spiInput" placeholder="https://api.example.com">
+  </div>
+
+  <div class="setting-group">
+    <button id="testBtn" class="primary-btn">زر تجربة اتصال</button>
+    <span id="testStatus"></span>
+  </div>
+</div>
+
+<!-- قسم اللغات والترجمة -->
+<section class="translation-section">
+  <!-- خانات اللغات -->
+  <div class="languages-row">
+    <div class="lang-box active-lang">🇸🇦 العربية (الافتراضية)</div>
+    <div class="lang-box">🇬🇧 الإنكليزية</div>
+  </div>
+
+  <!-- خانات الترجمة -->
+  <div class="translation-modes-row">
+    <div class="mode-box">
+      <h3>الترجمة العادية</h3>
+      <textarea placeholder="النص للترجمة العادية..."></textarea>
+    </div>
+    
+    <div class="mode-box">
+      <h3>الترجمة بذكاء الاصطناعي</h3>
+      <textarea placeholder="النص للترجمة بالذكاء الاصطناعي..."></textarea>
+      
+      <!-- اختيار نموذج الذكاء الاصطناعي (بدون اختيار افتراضي مسبق) -->
+      <div class="ai-options-group">
+        <label for="aiModelSelect">اختر نموذج الذكاء الاصطناعي:</label>
+        <select id="aiModelSelect">
+          <option value="" disabled selected>-- الرجاء الاختيار --</option>
+          <option value="model-a">النموذج الأول</option>
+          <option value="model-b">النموذج الثاني</option>
+          <option value="model-c">النموذج الثالث</option>
+        </select>
+      </div>
+
+      <!-- خانة الترجمة الصوتية باحترافية عالية -->
+      <div class="voice-translation-group">
+        <button id="voiceBtn" class="voice-btn">🎤 ترجمة صوتية باحترافية عالية</button>
+        <span id="voiceStatus">جاهز للاستماع...</span>
+      </div>
+    </div>
+  </div>
+</section>
