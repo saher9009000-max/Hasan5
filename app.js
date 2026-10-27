@@ -12,7 +12,6 @@
     theme: 'pt_theme_v1',
     engine: 'pt_engine_v1',
     type: 'pt_type_v1',
-    bubble: 'pt_bubble_v1',
   };
 
   const MAX_CHARS = 500;
@@ -144,7 +143,6 @@
     isTranslating: false,
     isSpeaking: false,
     settings: { apiKey: '', endpoint: 'https://api.openai.com/v1' },
-    bubble: { open: false },
   };
 
   /* ---------- DOM Cache ---------- */
@@ -163,6 +161,8 @@
     dom.translateBtn = $('translateBtn');
     dom.clearAllBtn = $('clearAllBtn');
     dom.pasteBtn = $('pasteBtn');
+    dom.importBtn = $('importBtn');
+    dom.fileInput = $('fileInput');
     dom.voiceInputBtn = $('voiceInputBtn');
     dom.clearBtn = $('clearBtn');
     dom.copyBtn = $('copyBtn');
@@ -212,16 +212,6 @@
     dom.historySearchInput = $('historySearchInput');
     dom.clearHistoryBtn = $('clearHistoryBtn');
     dom.historyTabs = document.querySelectorAll('.history-tab');
-
-    dom.bubbleFab = $('bubbleFab');
-    dom.bubblePanel = $('bubblePanel');
-    dom.bubbleCloseBtn = $('bubbleCloseBtn');
-    dom.bubbleInput = $('bubbleInput');
-    dom.bubbleSourceLang = $('bubbleSourceLang');
-    dom.bubbleTargetLang = $('bubbleTargetLang');
-    dom.bubbleTranslateBtn = $('bubbleTranslateBtn');
-    dom.bubbleResult = $('bubbleResult');
-    dom.bubbleDot = $('bubbleDot');
 
     dom.toastContainer = $('toastContainer');
   }
@@ -339,8 +329,6 @@
   function initLanguageSelects() {
     fillLanguageSelect(dom.sourceLang, true, 'auto');
     fillLanguageSelect(dom.targetLang, false, 'en');
-    fillLanguageSelect(dom.bubbleSourceLang, true, 'auto');
-    fillLanguageSelect(dom.bubbleTargetLang, false, 'en');
   }
 
   /* ---------- Engine switch ---------- */
@@ -511,8 +499,8 @@
         .filter((m) => m && (typeof m.id === 'string' || typeof m.name === 'string'))
         .map((m) => ({
           id: m.id || m.name,
-          owned_by: m.owned_by || m.ownedBy || '',
-          created: m.created || null,
+          owned_by: m.owned_by || m.ownedBy || m.publisher || '',
+          created: m.created || m.created_at || null,
         }));
 
       if (!models.length) {
@@ -1049,21 +1037,46 @@
     let recognition = null;
     let listening = false;
 
+    const langMap = {
+      ar: 'ar-SA',
+      en: 'en-US',
+      fr: 'fr-FR',
+      es: 'es-ES',
+      de: 'de-DE',
+      it: 'it-IT',
+      pt: 'pt-BR',
+      ru: 'ru-RU',
+      tr: 'tr-TR',
+      ja: 'ja-JP',
+      ko: 'ko-KR',
+      zh: 'zh-CN',
+      hi: 'hi-IN',
+      ur: 'ur-PK',
+      fa: 'fa-IR',
+      nl: 'nl-NL',
+      pl: 'pl-PL',
+      sv: 'sv-SE',
+    };
+
     dom.voiceInputBtn.addEventListener('click', () => {
       if (listening && recognition) {
-        recognition.stop();
+        try {
+          recognition.stop();
+        } catch {}
         return;
       }
       try {
         recognition = new SR();
-        recognition.lang = dom.sourceLang.value === 'auto' ? 'ar-SA' : dom.sourceLang.value;
+        const selectedLang = dom.sourceLang.value;
+        recognition.lang = selectedLang === 'auto' ? 'ar-SA' : (langMap[selectedLang] || selectedLang);
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
           listening = true;
           dom.voiceInputBtn.classList.add('active');
-          toast('جارٍ الاستماع… تحدث الآن.');
+          setStatus('جاري تسجيل الصوت...', 'info', true);
+          toast('جارٍ التسجيل والاستماع… تحدث الآن.');
         };
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
@@ -1081,7 +1094,10 @@
           dom.voiceInputBtn.classList.remove('active');
         };
         recognition.start();
-      } catch {
+      } catch (err) {
+        console.error(err);
+        listening = false;
+        dom.voiceInputBtn.classList.remove('active');
         toast('تعذّر بدء الإدخال الصوتي.', 'error');
       }
     });
@@ -1092,72 +1108,6 @@
     const len = dom.sourceText.value.length;
     dom.charCount.textContent = `${len} / ${MAX_CHARS}`;
     dom.charCount.classList.toggle('over', len > MAX_CHARS);
-  }
-
-  /* ---------- Bubble ---------- */
-  function setBubbleOpen(open) {
-    state.bubble.open = open;
-    dom.bubblePanel.classList.toggle('open', open);
-    dom.bubbleFab.setAttribute('aria-expanded', String(open));
-    if (open) {
-      dom.bubbleDot.hidden = true;
-      setTimeout(() => dom.bubbleInput.focus(), 200);
-    }
-    safeSet(LS_KEYS.bubble, open);
-  }
-
-  function syncBubbleLanguages() {
-    dom.bubbleSourceLang.value = dom.sourceLang.value;
-    dom.bubbleTargetLang.value = dom.targetLang.value;
-  }
-
-  async function bubbleTranslate() {
-    const text = dom.bubbleInput.value.trim();
-    const sourceLang = dom.bubbleSourceLang.value;
-    const targetLang = dom.bubbleTargetLang.value;
-    if (!text) {
-      dom.bubbleResult.className = 'bubble-result error';
-      dom.bubbleResult.textContent = 'أدخل نصاً للترجمة.';
-      return;
-    }
-    if (text.length > MAX_CHARS) {
-      dom.bubbleResult.className = 'bubble-result error';
-      dom.bubbleResult.textContent = `الحد الأقصى ${MAX_CHARS} حرفاً.`;
-      return;
-    }
-    if (sourceLang !== 'auto' && sourceLang === targetLang) {
-      dom.bubbleResult.className = 'bubble-result error';
-      dom.bubbleResult.textContent = 'لغة المصدر والهدف متطابقتان.';
-      return;
-    }
-
-    dom.bubbleTranslateBtn.disabled = true;
-    dom.bubbleResult.className = 'bubble-result empty';
-    dom.bubbleResult.innerHTML = '<span class="spinner-xs" style="width:14px;height:14px;border-width:2px;border-color:var(--accent);border-top-color:transparent;display:inline-block;vertical-align:middle;margin-left:6px;"></span> جارٍ الترجمة…';
-
-    try {
-      const result = await translateNormal(text, sourceLang, targetLang);
-      dom.bubbleResult.className = 'bubble-result';
-      dom.bubbleResult.textContent = result;
-      dom.bubbleInput.value = '';
-      dom.bubbleDot.hidden = false;
-      addToHistory({
-        sourceText: text,
-        translatedText: result,
-        sourceLang,
-        targetLang,
-        engine: 'normal',
-        type: 'normal',
-        model: null,
-        timestamp: Date.now(),
-        id: uuid(),
-      });
-    } catch (err) {
-      dom.bubbleResult.className = 'bubble-result error';
-      dom.bubbleResult.textContent = err.message || 'فشلت الترجمة.';
-    } finally {
-      dom.bubbleTranslateBtn.disabled = false;
-    }
   }
 
   /* ---------- Settings UI ---------- */
@@ -1204,12 +1154,14 @@
 
   /* ---------- Event bindings ---------- */
   function bindEvents() {
-    // Engine
-    dom.engineBtns.forEach((btn) => {
-      btn.addEventListener('click', () => setEngine(btn.dataset.engine));
-    });
+    if (dom.engineBtns) {
+      dom.engineBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          setEngine(btn.dataset.engine);
+        });
+      });
+    }
 
-    // Language selects & swap
     dom.swapBtn.addEventListener('click', () => {
       const s = dom.sourceLang.value;
       const t = dom.targetLang.value;
@@ -1224,10 +1176,8 @@
       toast('تم تبديل اللغتين.');
     });
 
-    // Source text
     dom.sourceText.addEventListener('input', updateCharCount);
 
-    // Clear
     dom.clearBtn.addEventListener('click', () => {
       dom.sourceText.value = '';
       updateCharCount();
@@ -1241,7 +1191,33 @@
       toast('تم مسح الكل.');
     });
 
-    // Paste
+    if (dom.importBtn && dom.fileInput) {
+      dom.importBtn.addEventListener('click', () => {
+        dom.fileInput.click();
+      });
+    }
+    dom.fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        if (typeof text === 'string') {
+          dom.sourceText.value = text.slice(0, MAX_CHARS);
+          updateCharCount();
+          toast('تم استيراد الملف بنجاح.');
+        } else {
+          toast('تعذّر قراءة محتوى الملف.', 'error');
+        }
+        dom.fileInput.value = '';
+      };
+      reader.onerror = () => {
+        toast('حدث خطأ أثناء قراءة الملف.', 'error');
+        dom.fileInput.value = '';
+      };
+      reader.readAsText(file);
+    });
+
     dom.pasteBtn.addEventListener('click', async () => {
       try {
         const text = await navigator.clipboard.readText();
@@ -1255,7 +1231,6 @@
       }
     });
 
-    // Translate
     dom.translateBtn.addEventListener('click', doTranslate);
     dom.retranslateBtn.addEventListener('click', () => {
       if (state.currentResult) {
@@ -1267,7 +1242,6 @@
       }
     });
 
-    // Result tools
     dom.copyBtn.addEventListener('click', () => copyText(dom.outputText.textContent));
     dom.speakBtn.addEventListener('click', speakOutput);
     dom.shareBtn.addEventListener('click', shareResult);
@@ -1276,7 +1250,6 @@
       toggleFavorite(state.currentResult);
     });
 
-    // Ctrl/Cmd + Enter
     dom.sourceText.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
@@ -1284,17 +1257,14 @@
       }
     });
 
-    // Models
     dom.modelSelectorBtn.addEventListener('click', openModelModal);
     dom.refreshModelsBtn.addEventListener('click', fetchModels);
     dom.modelSearchInput.addEventListener('input', debounce(renderModelList, 150));
     dom.confirmModelBtn.addEventListener('click', confirmModel);
 
-    // Type
     dom.typeSelectorBtn.addEventListener('click', openTypeModal);
     dom.confirmTypeBtn.addEventListener('click', confirmType);
 
-    // Settings
     dom.settingsBtn.addEventListener('click', () => {
       fillSettingsUI();
       setConnectionStatus('لم يتم اختبار الاتصال بعد.');
@@ -1323,13 +1293,11 @@
       }
     });
 
-    // Theme
     dom.themeToggleBtn.addEventListener('click', () => {
       const current = document.documentElement.getAttribute('data-theme');
       applyTheme(current === 'dark' ? 'light' : 'dark');
     });
 
-    // History
     dom.historyToggleBtn.addEventListener('click', () => {
       dom.historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -1344,10 +1312,13 @@
         renderHistory();
       });
     });
-    dom.historySearchInput.addEventListener('input', debounce(() => {
-      state.historyQuery = dom.historySearchInput.value;
-      renderHistory();
-    }, 150));
+
+    if (dom.historySearchInput) {
+      dom.historySearchInput.addEventListener('input', debounce((e) => {
+        state.historyQuery = e.target.value;
+        renderHistory();
+      }, 150));
+    }
     dom.clearHistoryBtn.addEventListener('click', () => {
       if (state.historyTab === 'history') {
         if (confirm('حذف كل السجل؟')) {
@@ -1366,35 +1337,14 @@
       }
     });
 
-    // Bubble
-    dom.bubbleFab.addEventListener('click', () => {
-      if (state.bubble.open) setBubbleOpen(false);
-      else {
-        syncBubbleLanguages();
-        setBubbleOpen(true);
-      }
-    });
-    dom.bubbleCloseBtn.addEventListener('click', () => setBubbleOpen(false));
-    dom.bubbleTranslateBtn.addEventListener('click', bubbleTranslate);
-    dom.bubbleInput.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        bubbleTranslate();
-      }
-    });
-
-    // Keyboard Esc
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay.open').forEach((m) => closeModal(m));
-        if (state.bubble.open) setBubbleOpen(false);
       }
     });
 
-    // Voice
     initVoiceInput();
 
-    // Populate voices lazily
     if ('speechSynthesis' in window) {
       window.speechSynthesis.getVoices();
     }
@@ -1411,18 +1361,13 @@
     initModalCloseButtons();
     bindEvents();
 
-    // Restore translation type
     const savedType = safeGet(LS_KEYS.type, 'natural');
     if (TRANSLATION_TYPES.some((t) => t.id === savedType)) state.type = savedType;
     updateSelectorLabels();
 
-    // Restore bubble state (closed by default)
-    setBubbleOpen(false);
-
     renderHistory();
     updateCharCount();
 
-    // Try to restore last model display from history? Keep simple: no.
     console.info('Premium Translate v1.1 initialized.');
   }
 
